@@ -7,7 +7,7 @@
 (* ::Text:: *)
 (*SuperTrace Evaluation Automated for Matching*)
 (*by Timothy Cohen, Xiaochuan Lu, and Zhengkang Zhang*)
-(*Last edited on December 06, 2020.*)
+(*Last edited on December 11, 2020.*)
 
 
 (* ::Section:: *)
@@ -30,7 +30,6 @@ P::usage="\!\(\*SubscriptBox[\(P\), \(\[Mu]\)]\)=\!\(\*SubscriptBox[\(iD\), \(\[
 
 (* Reserved as dummy indices *)
 \[Mu]::usage="\!\(\*SubscriptBox[\(\[Mu]\), \(i\)]\) denote dummy indices in output.";
-\[Rho]::usage="\!\(\*SubscriptBox[\(\[Rho]\), \(i\)]\) denote dummy indices in output.";
 
 (* Reserved for output *)
 m::usage="\!\(\*SubscriptBox[\(m\), \(i\)]\) with i non-negative integers denote particle masses.";
@@ -55,7 +54,7 @@ SuperTraceFromExpr::usage="SuperTraceFromExpr[dim,fexpr] evaluates -iSTr[f]\!\(\
 Begin["`Private`"]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*qSection Manipulations*)
 
 
@@ -86,7 +85,7 @@ When there are three or more non-degenerate masses, LoopInt leaves the result ab
 
 
 (* ::Subsubsection::Closed:: *)
-(*qSec and qPart Arithmetic*)
+(*qPart and qSec Arithmetic*)
 
 
 (* ::Input::Initialization:: *)
@@ -97,7 +96,6 @@ Clear[ExprqPart];
 Clear[qPartFromExpr];
 Clear[SimplifyqPart];
 Clear[SimplifyqSec]; 
-Clear[ScaleqPart];
 Clear[ScaleqSec];
 Clear[MultiplyqSecs];
 
@@ -156,17 +154,10 @@ myqSec=qPartFromExpr[#]&/@exprArray;
 Return[myqSec];
 ];
 
-(* Scale a qPart by a constant coeff, which does not depend on q or dq *)
-ScaleqPart[qPart_,coeff_]:=Module[{myqPart},
-myqPart=SimplifyqPart[qPart];
-myqPart[[1]]=coeff*myqPart[[1]];
-myqPart=SimplifyqPart[myqPart];
-Return[myqPart];
-];
-
 (* Scale a qSec by a constant coeff, which does not depend on q or dq *)
 ScaleqSec[qSec_,coeff_]:=Module[{myqSec},
-myqSec=ScaleqPart[#,coeff]&/@qSec;
+myqSec=Insert[#,coeff,1]&/@qSec;
+myqSec=SimplifyqPart[#]&/@myqSec;
 Return[myqSec];
 ];
 
@@ -188,7 +179,6 @@ Clear[dqLastqPart];
 Clear[dqLastqSec];
 Clear[dqAllqPart];
 Clear[dqAllqSec];
-Clear[qEvenTrimqSec];
 
 Clear[\[Eta]ContractionRules];
 Clear[qContractionRules];
@@ -242,13 +232,6 @@ Return[myqSec];
 dqAllqSec[qSec_]:=Module[{myqSec},
 myqSec=Flatten[dqAllqPart/@qSec,1];
 myqSec=SimplifyqSec[myqSec];
-Return[myqSec];
-];
-
-(* Drop the qParts in a qSec that are odd under q\[Rule]-q *)
-qEvenTrimqSec[qSec_]:=Module[{myqSec},
-myqSec=Select[qSec,EvenQ[Count[#,Subscript[q, __]]+Count[#,Subscript[dq, __]]]&];
-If[myqSec==={},myqSec={{0}}];
 Return[myqSec];
 ];
 
@@ -328,8 +311,8 @@ coeff=coeff/.{Subscript[cp, n_]:>Times@@(1/(d+2#-2)&/@Range[n])};
 \[CapitalDelta]list=Cases[qPart,Subscript[\[CapitalDelta], __]|\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(__\), \(__\)]\)];
 r=-Plus@@(Cases[\[CapitalDelta]list,Subscript[\[CapitalDelta], 0]|\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(0\), \(__\)]\)]/.{Subscript[\[CapitalDelta], 0]->1,\!\(
 \*SubsuperscriptBox[\(\[CapitalDelta]\), \(0\), \(a_\)] -> a\)});
-LoopIparameters=Transpose[DeleteCases[\[CapitalDelta]list,Subscript[\[CapitalDelta], 0]|\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(0\), \(__\)]\)]/.{Subscript[\[CapitalDelta], imass_]->{imass,1},\!\(
-\*SubsuperscriptBox[\(\[CapitalDelta]\), \(imass_\), \(n_\)] -> \({imass, n}\)\)}];
+LoopIparameters=Transpose[DeleteCases[\[CapitalDelta]list,Subscript[\[CapitalDelta], 0]|\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(0\), \(__\)]\)]/.{Subscript[\[CapitalDelta], i_]->{i,1},\!\(
+\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i_\), \(n_\)] -> \({i, n}\)\)}];
 masslist=Subscript[m, #]&/@LoopIparameters[[1]];
 nlist=LoopIparameters[[2]];
 If[Length[nlist]<3,
@@ -350,7 +333,7 @@ Return[myqSec];
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Polynomial Manipulations*)
 
 
@@ -365,18 +348,17 @@ Return[myqSec];
 A "poly" is a list of "terms", while a "term" consists of three lists
 term={qSec, Oper, Ord};
 for example
-UCDEDim[4]\[LeftDoubleBracket]1\[RightDoubleBracket]={{{1/6,Subscript[dq, Subscript[\[Mu], 1]],Subscript[dq, Subscript[\[Mu], 2]],Subscript[dq, Subscript[\[Mu], 3]]}},{{Subscript[P, Subscript[\[Mu], 1]],Subscript[P, Subscript[\[Mu], 2]],Subscript[P, Subscript[\[Mu], 3]],U}},{4,3,0}};
-  GCDEDim[{Subscript[\[Nu], 1],Subscript[\[Nu], 2]},4]\[LeftDoubleBracket]1\[RightDoubleBracket]={{{1/8,Subscript[dq, Subscript[\[Mu], 1]],Subscript[dq, Subscript[\[Mu], 2]]}},{{Subscript[P, Subscript[\[Mu], 1]],Subscript[P, Subscript[\[Mu], 2]],Subscript[G, Subscript[\[Nu], 1],Subscript[\[Nu], 2]]}},{4,2,2}};
+UCDEDim[4]\[LeftDoubleBracket]1\[RightDoubleBracket]={{{1/6,Subscript[dq, Subscript[\[Mu], 1]],Subscript[dq, Subscript[\[Mu], 2]],Subscript[dq, Subscript[\[Mu], 3]]}},{{Subscript[P, Subscript[\[Mu], 1]],Subscript[P, Subscript[\[Mu], 2]],Subscript[P, Subscript[\[Mu], 3]],U}},{4,3}};
+  GCDEDim[{Subscript[\[Nu], 1],Subscript[\[Nu], 2]},4]\[LeftDoubleBracket]1\[RightDoubleBracket]={{{-(\[ImaginaryI]/8),Subscript[dq, Subscript[\[Mu], 1]],Subscript[dq, Subscript[\[Mu], 2]]}},{{Subscript[P, Subscript[\[Mu], 1]],Subscript[P, Subscript[\[Mu], 2]],Subscript[F, Subscript[\[Nu], 1],Subscript[\[Nu], 2]]}},{4,2}};
 The first list "qSec" is the q-Section of the term. This part will be integrated over eventually;
-The second list "Oper" stores the effective operator. This part will be shown in the final result;The third list "Ord" is a list of auxiliary parameters
-Ord={dim, ndummy, nopen};
-with the following meaning respectively;
+The second list "Oper" stores the effective operator. This part will be shown in the final result;The third list "Ord" consists of two auxiliary parameters
+Ord={dim, ndummy};
+respectively, they are;
 dim      the operator dimension;
 ndummy   the number of dummy Lorentz index pairs (Subscript[\[Mu], i] indices);
-nopen    the number of open Lorentz indices;
 
-The numbers of Lorentz indices, "ndummy" and "nopen", are only used in the steps of generating the CDE poly;
-Once we obtain the poly and move on to address the loop integral (see the main function SuperTrace[] below), they will no longer be in use. In the final output, they will be discarded, and only "dim" will be kept.
+The numbers of dummy Lorentz indices, "ndummy", is only used in the steps of generating the CDE poly;
+Once we obtain the poly and move on to address the loop integral (see the main function SuperTrace[] below), it will no longer be in use. In the final output, it will be discarded, and only "dim" will be kept.
 *)
 
 
@@ -385,133 +367,71 @@ Once we obtain the poly and move on to address the loop integral (see the main f
 
 
 (* ::Input::Initialization:: *)
-Clear[SimplifyOperTerm];
+Clear[CollectPoly];
 Clear[SimplifyPoly];
-Clear[ScaleTerm];
-Clear[ScalePoly];
-Clear[SumPolys];
-Clear[ShiftDummyIndicesTerm];
-Clear[ShiftDummyIndicesPoly];
-Clear[DistinguishDummyIndices];
 Clear[MultiplyTerms];
 Clear[MultiplyPolys];
-Clear[ContractTermIndices];
-Clear[ContractPolyIndices];
 
 
 (* ::Input::Initialization:: *)
-(* Move all commuting factors, such as constants, Subscript[m, i], and Subscript[\[Eta], \[Mu]\[Nu]] in Oper to qSec *)
-SimplifyOperTerm[term_]:=Module[{myqSec,coeffOper,myOper,myterm},
-myOper=term[[2]];
-coeffOper=Times@@Flatten[Cases[#,_?NumericQ|Subscript[m, __]|Subscript[\[Eta], __]]&/@myOper];
-myOper=DeleteCases[#,_?NumericQ|Subscript[m, __]|Subscript[\[Eta], __]]&/@myOper;
-myOper=Select[myOper,(#=!={})&];
-myqSec=ScaleqSec[term[[1]],coeffOper];
-myterm=ReplacePart[term,{1->myqSec,2->myOper}];
-Return[myterm];
-];
-
-(* Simplify a poly by collecting and simplifying its terms *)
-SimplifyPoly[poly_]:=Module[{mypoly},
-mypoly=SimplifyOperTerm/@poly;
-mypoly=ReplacePart[#[[1]],1->Join@@(#[[1]]&/@#)]&/@GatherBy[mypoly,#[[2]]&];
+(* Collect terms with identical Oper and Ord in a poly *)
+CollectPoly[poly_]:=Module[{mypoly},
+(* collect terms with identical Oper and Ord *)
+mypoly=ReplacePart[#[[1]],1->Join@@(#[[1]]&/@#)]&/@GatherBy[poly,{#[[2]],#[[3]]}&];
+(* simplify qSec *)
 mypoly=ReplacePart[#,1->SimplifyqSec[#[[1]]]]&/@mypoly;
 mypoly=Select[mypoly,#[[1]]=!={{0}}&];
+(* sort poly *)
 mypoly=SortBy[mypoly,#[[3]][[1]]&];
 Return[mypoly];
 ];
 
-(* Scale a term by a constant coeff, which does not depend on q or dq *)
-ScaleTerm[term_,coeff_]:=Module[{myqSec,myterm},
-myqSec=ScaleqSec[term[[1]],coeff];
-myterm=ReplacePart[term,1->myqSec];
-Return[myterm];
-];
-
-(* Scale a poly by a constant coeff, which does not depend on q or dq *)
-ScalePoly[poly_,coeff_]:=Module[{mypoly},
-mypoly=ScaleTerm[#,coeff]&/@poly;
+(* Simplify a poly by collecting and simplifying its terms *)
+SimplifyPoly[poly_]:=Module[{qSecArray,OperArray,mypoly},
+(* move all commuting factors including constants, Subscript[m, i], Subscript[\[Eta], \[Mu]\[Nu]], and Subscript[\[Epsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] in Oper to qSec *)
+qSecArray=ScaleqSec[#[[1]],Times@@Cases[Flatten[#[[2]]],_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]]]&/@poly;
+OperArray=Select[DeleteCases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]]&/@#[[2]],(#=!={})&]&/@poly;
+mypoly=MapThread[ReplacePart[#3,{1->#1,2->#2}]&,{qSecArray,OperArray,poly}];
+(* collect terms with identical Oper *)
+mypoly=ReplacePart[#[[1]],1->Join@@(#[[1]]&/@#)]&/@GatherBy[mypoly,#[[2]]&];
+(* simplify qSec *)
+mypoly=ReplacePart[#,1->SimplifyqSec[#[[1]]]]&/@mypoly;
+mypoly=Select[mypoly,#[[1]]=!={{0}}&];
+(* sort poly *)
+mypoly=SortBy[mypoly,#[[3]][[1]]&];
 Return[mypoly];
-];
-
-(* Sum a list of polys into a poly *)
-SumPolys[polylist_]:=Module[{mypoly},
-mypoly=Join@@polylist;
-mypoly=SimplifyPoly[mypoly];
-Return[mypoly];
-];
-
-(* Shift all the dummy indices (Subscript[\[Mu], i] indices) in a term by n *)
-ShiftDummyIndicesTerm[term_,n_]:=Module[{myterm},
-myterm=term/.{Subscript[\[Mu], m_]->Subscript[\[Mu], m+n]};
-Return[myterm];
-];
-
-(* Shift all the dummy indices (Subscript[\[Mu], i] indices) in a poly by n *)
-ShiftDummyIndicesPoly[poly_,n_]:=Module[{mypoly},
-mypoly=ShiftDummyIndicesTerm[#,n]&/@poly;
-Return[mypoly];
-];
-
-(* Before multiplying a list of terms, distinguish their dummy indices by shifting the ones appearing later *)
-DistinguishDummyIndices[termlist_]:=Module[{shiftlist,mytermlist},
-shiftlist=Join[{0},Accumulate[((#[[3]][[2]])&/@termlist)[[;;-2]]]];
-mytermlist=MapThread[ShiftDummyIndicesTerm[#1,#2]&,{termlist,shiftlist}];
-Return[mytermlist];
 ];
 
 (* Multiply a list of terms into a term *)
-MultiplyTerms[termlist_]:=Module[{mytermlist,qSec,Oper,Ord,myterm},
-mytermlist=DistinguishDummyIndices[termlist];
-qSec=MultiplyqSecs[#[[1]]&/@mytermlist];
-Oper=Join@@(#[[2]]&/@mytermlist);
-Ord=Plus@@(#[[3]]&/@mytermlist);
+MultiplyTerms[termArray_]:=Module[{dummyshiftArray,mytermArray,qSec,Oper,Ord,indices,indicesOpen,indicesDummy,ndummy,n\[Mu],myterm},
+(* distinguish dummy indices Subscript[\[Mu], i] before multiplying terms *)
+dummyshiftArray=Join[{0},Accumulate[(#[[3]][[2]])&/@termArray][[;;-2]]];
+mytermArray=MapThread[#1/.{Subscript[\[Mu], n_]->Subscript[\[Mu], n+#2]}&,{termArray,dummyshiftArray}];
+(* multiply terms *)
+qSec=MultiplyqSecs[#[[1]]&/@mytermArray];
+Oper=Join@@(#[[2]]&/@mytermArray);
+Ord=Plus@@(#[[3]]&/@mytermArray);
 myterm={qSec,Oper,Ord};
+(* convert new dummy Lorentz indices into Subscript[\[Mu], i] *)
+n\[Mu]=Ord[[2]];
+indices=DeleteCases[Cases[Join[qSec[[1]],Flatten[Oper]],Subscript[_, a__]->a],_?NumericQ|Subscript[\[Mu], _]];
+indicesOpen=Select[indices,(Count[indices,#]==1)&];
+If[Count[indicesOpen,Subscript[\[Mu], _]]>0,
+Print["MultiplyTerms called with term containing open \!\(\*SubscriptBox[\(\[Mu]\), \(i\)]\) indices: term=",myterm];
+Print["Aborted."];
+Abort[];
+];
+indicesDummy=DeleteDuplicates[Select[indices,(Count[indices,#]>1)&]];
+ndummy=Length[indicesDummy];
+myterm=myterm/.MapThread[(#1->Subscript[\[Mu], n\[Mu]+#2])&,{indicesDummy,Range[ndummy]}];
+myterm[[3]][[2]]=n\[Mu]+ndummy;
 Return[myterm];
 ];
 
 (* Multiply a list of polys into a poly *)
-MultiplyPolys[polylist_]:=Module[{mypoly},
-mypoly=MultiplyTerms[#]&/@Tuples[polylist];
-mypoly=SimplifyPoly[mypoly];
-Return[mypoly];
-];
-
-(* Detect Lorentz index pairs of the type in \[Nu]list in a term, and rewrite them into Subscript[\[Mu], i] pairs *)
-ContractTermIndices[term_,\[Nu]list_]:=Module[{my\[Nu]list,mylist,n\[Mu],nOpen,indices,dummylist,ndummy,rules,myterm},
-my\[Nu]list=\[Nu]list;
-(* if \[Nu]list contains "\[Mu]", remove it *)
-If[MemberQ[my\[Nu]list,\[Mu]],
-Print["ContractTermIndices[] called with invalid input \[Nu]list=",my\[Nu]list];
-Print["\[Mu] is reserved for default dummy indices, and need not be further contracted."];
-my\[Nu]list=DeleteCases[my\[Nu]list,\[Mu]];
-Print["Proceeding with \[Nu]list=",my\[Nu]list];
-];
-(* Put qSec\[LeftDoubleBracket]1\[RightDoubleBracket] and Oper together to find dummy indices to contract *)
-mylist=Join[term[[1]][[1]],Flatten[term[[2]]]];
-n\[Mu]=term[[3]][[2]];
-nOpen=term[[3]][[3]];
-indices=Tuples[{my\[Nu]list,Range[0,nOpen]}];
-dummylist=Join@@(If[Count[mylist,Subscript[#[[1]], #[[2]]],All]==2,{Subscript[#[[1]], #[[2]]]},{}]&/@indices);
-ndummy=Length[dummylist];
-rules=MapThread[#1->Subscript[\[Mu], n\[Mu]+#2]&,{dummylist,Range[ndummy]}];
-myterm=term/.rules;
-myterm[[3]][[2]]=n\[Mu]+ndummy;
-myterm[[3]][[3]]=nOpen-2ndummy;
-Return[myterm];
-];
-
-(* Detect Lorentz index pairs of the type in \[Nu]list in a poly, and rewrite them into Subscript[\[Mu], i] pairs *)
-ContractPolyIndices[poly_,\[Nu]list_]:=Module[{my\[Nu]list,mypoly},
-my\[Nu]list=\[Nu]list;
-(* if \[Nu]list contains "\[Mu]", remove it *)
-If[MemberQ[my\[Nu]list,\[Mu]],
-Print["ContractTermIndices[] called with invalid input \[Nu]list=",my\[Nu]list];
-Print["\[Mu] is reserved for default dummy indices, and need not be further contracted."];
-my\[Nu]list=DeleteCases[my\[Nu]list,\[Mu]];
-Print["Proceeding with \[Nu]list=",my\[Nu]list];
-];
-mypoly=ContractTermIndices[#,my\[Nu]list]&/@poly;
+MultiplyPolys[polyArray_]:=Module[{mypoly},
+mypoly=MultiplyTerms/@Tuples[polyArray];
+mypoly=CollectPoly[mypoly];
 Return[mypoly];
 ];
 
@@ -525,22 +445,22 @@ Clear[qPartFVanish];
 Clear[FTrimqSec];
 Clear[FTrimTerm];
 Clear[FTrimPoly];
-Clear[qEvenTrimTerm];
 Clear[qEvenTrimPoly];
 
-Clear[\[Eta]pairTerm];
-Clear[Contract\[Eta]Term];
 Clear[IBPTerm];
 Clear[IBPPoly];
 Clear[IBPAllTerm];
 Clear[IBPAllPoly];
+Clear[\[Eta]pairTerm];
+Clear[MoveLorentzTerm];
+Clear[FIndexOrgOper];
+Clear[OperIndexOrgTerm];
 Clear[PPFpattern0];
 Clear[PPFpattern1];
 Clear[PPFrules1];
+Clear[FUrules];
 Clear[PPFOrgTerm];
-Clear[FIndexOrgOper];
-Clear[OperIndexOrgTerm];
-
+Clear[FUOrgTerm];
 Clear[All\[Gamma]Pairings];
 Clear[Trace\[Gamma]Term];
 
@@ -564,7 +484,7 @@ Return[False];
 (* FTrim a qSec *)
 FTrimqSec[qSec_,F\[Mu]pair_]:=Module[{myqSec},
 myqSec=Select[qSec,!qPartFVanish[#,F\[Mu]pair]&];
-myqSec=If[myqSec==={},{{0}},myqSec];
+If[myqSec==={},myqSec={{0}}];
 Return[myqSec];
 ];
 
@@ -583,40 +503,10 @@ mypoly=Select[mypoly,#[[1]]=!={{0}}&];
 Return[mypoly];
 ];
 
-(* Trim a term by keeping only even parts under q\[Rule]-q *)
-qEvenTrimTerm[term_]:=Module[{myqSec,myterm},
-myqSec=qEvenTrimqSec[term[[1]]];
-myterm=ReplacePart[term,1->myqSec];
-Return[myterm];
-];
-
 (* Trim a poly by keeping only even parts under q\[Rule]-q *)
 qEvenTrimPoly[poly_]:=Module[{mypoly},
-mypoly=qEvenTrimTerm/@poly;
-mypoly=Select[mypoly,#[[1]]=!={{0}}&];
-Return[mypoly];
-];
-
-(* Contract a term with an Subscript[\[Eta], \[Mu]\[Nu]] *)
-\[Eta]pairTerm[term_,\[Eta]pair_]:=Module[{myOper,myterm},
-myOper=term[[2]];
-If[Count[myOper,\[Eta]pair[[2]],All]==1,
-myOper=myOper/.{\[Eta]pair[[2]]->\[Eta]pair[[1]]},
-If[Count[myOper,\[Eta]pair[[1]],All]==1,
-myOper=myOper/.{\[Eta]pair[[1]]->\[Eta]pair[[2]]},
-myOper=Join[{{Subscript[\[Eta], \[Eta]pair]}},myOper]/.{\!\(\*SubscriptBox[\(\[Eta]\), \({a__}\)]\)->Subscript[\[Eta], a]};
-];
-];
-myterm=ReplacePart[term,2->myOper];
-Return[myterm];
-];
-
-(* Contract all Subscript[\[Eta], \[Mu]\[Nu]] in the qSec of a term with its Oper to get a poly *)
-Contract\[Eta]Term[term_]:=Module[{myqSec,\[Eta]pairsArray,mypoly},
-myqSec=term[[1]];
-mypoly=ReplacePart[term,1->#]&/@({DeleteCases[#,Subscript[\[Eta], __]]}&/@myqSec);
-\[Eta]pairsArray=Cases[#,Subscript[\[Eta], a__]->{a}]&/@myqSec;
-mypoly=MapThread[Fold[\[Eta]pairTerm,#1,#2]&,{mypoly,\[Eta]pairsArray}];
+mypoly=ReplacePart[#,1->Select[#[[1]],EvenQ[Count[#,Subscript[q, __]]+Count[#,Subscript[dq, __]]]&]]&/@poly;
+mypoly=Select[mypoly,#[[1]]=!={}&];
 Return[mypoly];
 ];
 
@@ -651,19 +541,33 @@ mypoly=Join@@(IBPAllTerm/@poly);
 Return[mypoly];
 ];
 
-(* PPF paterns and their simplification rules *)
-PPFpattern0=Alternatives@@{{Subscript[P, \[Mu]_],Subscript[P, \[Nu]_],Subscript[F, \[Mu]_,\[Nu]_]},{__,Subscript[P, \[Mu]_],Subscript[P, \[Nu]_],Subscript[F, \[Mu]_,\[Nu]_]},{Subscript[P, \[Mu]_],Subscript[P, \[Nu]_],Subscript[F, \[Nu]_,\[Mu]_]},{__,Subscript[P, \[Mu]_],Subscript[P, \[Nu]_],Subscript[F, \[Nu]_,\[Mu]_]}};
-PPFpattern1=Alternatives@@{{Subscript[P, \[Rho]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]},{__,Subscript[P, \[Rho]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]},{Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]},{__,Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]},{Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Nu]_,\[Mu]_]},{__,Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Nu]_,\[Mu]_]}};
-PPFrules1={{Subscript[P, \[Rho]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]}->{{Subscript[P, \[Mu]],Subscript[P, \[Rho]],Subscript[F, \[Rho],\[Nu]]},{I,Subscript[F, \[Rho],\[Mu]],Subscript[F, \[Rho],\[Nu]]},{-1,Subscript[P, \[Nu]],Subscript[P, \[Rho]],Subscript[F, \[Rho],\[Mu]]},{-I,Subscript[F, \[Rho],\[Nu]],Subscript[F, \[Rho],\[Mu]]}},
-{a__,Subscript[P, \[Rho]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]}->{{a,Subscript[P, \[Mu]],Subscript[P, \[Rho]],Subscript[F, \[Rho],\[Nu]]},{a,I,Subscript[F, \[Rho],\[Mu]],Subscript[F, \[Rho],\[Nu]]},{a,-1,Subscript[P, \[Nu]],Subscript[P, \[Rho]],Subscript[F, \[Rho],\[Mu]]},{a,-I,Subscript[F, \[Rho],\[Nu]],Subscript[F, \[Rho],\[Mu]]}},
-{Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]}->{{Subscript[P, \[Rho]],Subscript[P, \[Mu]],Subscript[F, \[Mu],\[Nu]]},{I,Subscript[F, \[Mu],\[Rho]],Subscript[F, \[Mu],\[Nu]]}},{a__,Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Nu]_,\[Mu]_]}->{{a,Subscript[P, \[Rho]],Subscript[P, \[Mu]],Subscript[F, \[Nu],\[Mu]]},{a,I,Subscript[F, \[Mu],\[Rho]],Subscript[F, \[Nu],\[Mu]]}},
-{Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Nu]_,\[Mu]_]}->{{Subscript[P, \[Rho]],Subscript[P, \[Mu]],Subscript[F, \[Nu],\[Mu]]},{I,Subscript[F, \[Mu],\[Rho]],Subscript[F, \[Nu],\[Mu]]}},{a__,Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]}->{{a,Subscript[P, \[Rho]],Subscript[P, \[Mu]],Subscript[F, \[Mu],\[Nu]]},{a,I,Subscript[F, \[Mu],\[Rho]],Subscript[F, \[Mu],\[Nu]]}}};
+(* Contract a term with an Subscript[\[Eta], \[Mu]\[Nu]] *)
+\[Eta]pairTerm[term_,\[Eta]pair_]:=Module[{myOper,myterm},
+myOper=term[[2]];
+If[Count[myOper,\[Eta]pair[[2]],All]==1,
+myOper=myOper/.{\[Eta]pair[[2]]->\[Eta]pair[[1]]},
+If[Count[myOper,\[Eta]pair[[1]],All]==1,
+myOper=myOper/.{\[Eta]pair[[1]]->\[Eta]pair[[2]]},
+myOper=Join[{{Subscript[\[Eta], \[Eta]pair]}},myOper]/.{\!\(\*SubscriptBox[\(\[Eta]\), \({a__}\)]\)->Subscript[\[Eta], a]};
+];
+];
+myterm=ReplacePart[term,2->myOper];
+Return[myterm];
+];
 
-(* Use PPF simplification rules on a term to get a poly *)
-PPFOrgTerm[term_]:=Module[{operArray,mypoly},
-If[Count[term[[2]],PPFpattern0]!= 0,Return[{}]];
-operArray=Tuples[(If[MatchQ[#,PPFpattern1],#,{#}]&/@term[[2]])/.PPFrules1];
-mypoly=ReplacePart[term,2->#]&/@operArray;
+(* Move Subscript[\[Eta], \[Mu]\[Nu]] and Subscript[\[Epsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] in the qSec of a term to the Oper to get a poly *)
+MoveLorentzTerm[term_]:=Module[{myqSec,\[Eta]pairsArray,\[Epsilon]listArray,qSecArray,OperArray,mypoly},
+myqSec=SimplifyqSec[term[[1]]]; If[myqSec==={{0}},Return[{}]];
+(* move Subscript[\[Eta], \[Mu]\[Nu]] *)
+mypoly=ReplacePart[term,1->#]&/@({DeleteCases[#,Subscript[\[Eta], __]]}&/@myqSec);
+\[Eta]pairsArray=Cases[#,Subscript[\[Eta], a__]->{a}]&/@myqSec;
+mypoly=MapThread[Fold[\[Eta]pairTerm,#1,#2]&,{mypoly,\[Eta]pairsArray}];
+mypoly=Select[mypoly,Count[#[[2]],{Subscript[F, \[Mu]_,\[Mu]_]}|{__,Subscript[F, \[Mu]_,\[Mu]_]}]==0&];
+(* move Subscript[\[Epsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] *)
+\[Epsilon]listArray=Cases[#[[1]][[1]],Subscript[\[Epsilon], __]]&/@mypoly;
+qSecArray={DeleteCases[#[[1]][[1]],Subscript[\[Epsilon], __]]}&/@mypoly;
+OperArray=MapThread[If[#2==={},#1[[2]],Join[{#2},#1[[2]]]]&,{mypoly,\[Epsilon]listArray}];
+mypoly=MapThread[ReplacePart[#3,{1->#1,2->#2}]&,{qSecArray,OperArray,mypoly}];
 Return[mypoly];
 ];
 
@@ -675,13 +579,13 @@ partNo=Cases[partNolist,_?(MatchQ[oper[[#[[1]]]][[#[[2]]]],Subscript[F, __]]&)][
 \[Mu]pair=Cases[mylist,Subscript[F, a__]->{a}][[n]];
 indices=DeleteCases[Cases[mylist,Subscript[_, a__]->a],_?NumericQ];
 dummyindices=DeleteDuplicates[Select[indices,Count[indices,#]>1&]];
-(* If \[Mu]pair are not both dummy indices, put indices in Subscript[F, \[Mu]\[Nu]] in canonical order using its antisymmetry *)
+(* if \[Mu]pair are not both dummy indices, put indices in Subscript[F, \[Mu]\[Nu]] in canonical order using its antisymmetry *)
 If[!SubsetQ[dummyindices,\[Mu]pair],
 If[Sort[\[Mu]pair]===\[Mu]pair,Return[oper]];
 myOper=Flatten/@(ReplacePart[oper,partNo->{-1,Subscript[F, Reverse[\[Mu]pair]]}]/.{\!\(\*SubscriptBox[\(F\), \({a__}\)]\)->Subscript[F, a]});
 Return[myOper];
 ];
-(* If \[Mu]pair are both dummy indices, canonically order both dummy indices *)
+(* if \[Mu]pair are both dummy indices, canonically order both dummy indices *)
 \[Mu]pairother=Cases[Cases[Flatten[Delete[oper,partNo]],Subscript[_, a__]->a],_?(MemberQ[\[Mu]pair,#]&)];
 If[\[Mu]pair===\[Mu]pairother,Return[oper]];
 If[Sort[\[Mu]pair]=!=\[Mu]pair,
@@ -719,6 +623,30 @@ myterm=ReplacePart[myterm,2->myOper];
 Return[myterm];
 ];
 
+(* PPF paterns and their simplification rules *)
+PPFpattern0=Alternatives@@{{Subscript[P, \[Mu]_],Subscript[P, \[Nu]_],Subscript[F, \[Mu]_,\[Nu]_]},{__,Subscript[P, \[Mu]_],Subscript[P, \[Nu]_],Subscript[F, \[Mu]_,\[Nu]_]},{Subscript[P, \[Mu]_],Subscript[P, \[Nu]_],Subscript[F, \[Nu]_,\[Mu]_]},{__,Subscript[P, \[Mu]_],Subscript[P, \[Nu]_],Subscript[F, \[Nu]_,\[Mu]_]}};
+PPFpattern1=Alternatives@@{{Subscript[P, \[Rho]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]},{__,Subscript[P, \[Rho]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]},{Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]},{__,Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]},{Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Nu]_,\[Mu]_]},{__,Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Nu]_,\[Mu]_]}};
+PPFrules1={{Subscript[P, \[Rho]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]}->{{Subscript[P, \[Mu]],Subscript[P, \[Rho]],Subscript[F, \[Rho],\[Nu]]},{I,Subscript[F, \[Rho],\[Mu]],Subscript[F, \[Rho],\[Nu]]},{-1,Subscript[P, \[Nu]],Subscript[P, \[Rho]],Subscript[F, \[Rho],\[Mu]]},{-I,Subscript[F, \[Rho],\[Nu]],Subscript[F, \[Rho],\[Mu]]}},
+{a__,Subscript[P, \[Rho]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]}->{{a,Subscript[P, \[Mu]],Subscript[P, \[Rho]],Subscript[F, \[Rho],\[Nu]]},{a,I,Subscript[F, \[Rho],\[Mu]],Subscript[F, \[Rho],\[Nu]]},{a,-1,Subscript[P, \[Nu]],Subscript[P, \[Rho]],Subscript[F, \[Rho],\[Mu]]},{a,-I,Subscript[F, \[Rho],\[Nu]],Subscript[F, \[Rho],\[Mu]]}},
+{Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]}->{{Subscript[P, \[Rho]],Subscript[P, \[Mu]],Subscript[F, \[Mu],\[Nu]]},{I,Subscript[F, \[Mu],\[Rho]],Subscript[F, \[Mu],\[Nu]]}},{a__,Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Nu]_,\[Mu]_]}->{{a,Subscript[P, \[Rho]],Subscript[P, \[Mu]],Subscript[F, \[Nu],\[Mu]]},{a,I,Subscript[F, \[Mu],\[Rho]],Subscript[F, \[Nu],\[Mu]]}},
+{Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Nu]_,\[Mu]_]}->{{Subscript[P, \[Rho]],Subscript[P, \[Mu]],Subscript[F, \[Nu],\[Mu]]},{I,Subscript[F, \[Mu],\[Rho]],Subscript[F, \[Nu],\[Mu]]}},{a__,Subscript[P, \[Mu]_],Subscript[P, \[Rho]_],Subscript[F, \[Mu]_,\[Nu]_]}->{{a,Subscript[P, \[Rho]],Subscript[P, \[Mu]],Subscript[F, \[Mu],\[Nu]]},{a,I,Subscript[F, \[Mu],\[Rho]],Subscript[F, \[Mu],\[Nu]]}}};
+FUrules={{Subscript[F, a__],U__}->{{{Subscript[F, a]},{U}},{{U},{-1,Subscript[F, a]}}}};
+
+(* Use PPF simplification rules on a term to get a poly *)
+PPFOrgTerm[term_]:=Module[{operArray,mypoly},
+If[Count[term[[2]],PPFpattern0]!= 0,Return[{}]];
+operArray=Tuples[(If[MatchQ[#,PPFpattern1],#,{#}]&/@term[[2]])/.PPFrules1];
+mypoly=ReplacePart[term,2->#]&/@operArray;
+Return[mypoly];
+];
+
+(* Use FU simplification rules on a term to get a poly *)
+FUOrgTerm[term_]:=Module[{operArray,mypoly},
+operArray=Flatten[#,1]&/@Tuples[(If[MatchQ[#,{Subscript[F, __],__}],#,{{#}}]&/@term[[2]])/.FUrules];
+mypoly=ReplacePart[term,2->#]&/@operArray;
+Return[mypoly];
+];
+
 (* Get the \[Eta]expr from all \[Gamma] pairings (alternating pairings) of an even number of indices *)
 All\[Gamma]Pairings[{}]:=1;
 All\[Gamma]Pairings[{a_,b_}]:=Subscript[\[Eta], a,b];
@@ -742,6 +670,7 @@ myOper=DeleteCases[#,_?NumericQ|Subscript[\[Gamma], __]]&/@myOper;
 mypoly=ReplacePart[term,{1->ScaleqSec[term[[1]],#],2->myOper}]&/@coeffArray;
 \[Eta]pairArray=Cases[DeleteCases[#,_?NumericQ|d],Subscript[\[Eta], a__]->{a}]&/@\[Eta]pairArray;
 mypoly=MapThread[Fold[\[Eta]pairTerm,#1,#2]&,{mypoly,\[Eta]pairArray}];
+mypoly=Select[mypoly,Count[#[[2]],{Subscript[F, \[Mu]_,\[Mu]_]}|{__,Subscript[F, \[Mu]_,\[Mu]_]}]==0&];
 Return[mypoly];
 ];
 
@@ -764,40 +693,42 @@ mypoly=ReplacePart[#,1->dqAllqSec[#[[1]]]]&/@poly;
 Return[mypoly];
 ];
 
-(* Symmetrize a term and expand in hard region to get a poly before performing the q integral *)
-SymHardTerm[term_,dim_,Heavylist_,SoftOrd_]:=Module[{myqSec,myexprArray,\[Eta]pairsArray,myterm,mypoly},
+(* Symmetrize a term and expand in hard region before performing the q integral *)
+SymHardTerm[term_,dim_,Heavylist_,SoftOrd_]:=Module[{myqSec,myexprArray,\[Eta]pairsArray,myterm},
 (* contract all the Lorentz indices in qSec *)
-myqSec=term[[1]];
-myexprArray=(((Times@@#)//.\[Eta]ContractionRules)/.qContractionRules)&/@myqSec;
+myexprArray=(((Times@@#)//.\[Eta]ContractionRules)/.qContractionRules)&/@term[[1]];
 myexprArray=myexprArray/.{Subscript[\[Eta], \[Mu]_,\[Nu]_]:>Subscript[\[Eta], Sort[{\[Mu],\[Nu]}]]}/.{\!\(\*SubscriptBox[\(\[Eta]\), \({a__}\)]\)->Subscript[\[Eta], a]};
 myqSec=qPartFromExpr[#]&/@myexprArray;
 (* FTrim the qSec *)
 myqSec=FTrimTerm[ReplacePart[term,1->myqSec]][[1]];
-If[myqSec==={{0}},Return[{}]];
-(* symmetrize and expand in hard region *)
+If[myqSec==={{0}},Return[ReplacePart[term,1->myqSec]]];
+(* symmetrize qSec and expand in hard region *)
 myqSec=SymHardqSec[myqSec,Heavylist,dim-term[[3]][[1]]+SoftOrd];
 myterm=ReplacePart[term,1->myqSec];
-mypoly=Contract\[Eta]Term[myterm];
-Return[mypoly];
+Return[myterm];
 ];
 
 (* Symmetrize a poly, expand in hard region, and organize it before performing the q integral *)
 SymHardPoly[poly_,dim_,Heavylist_,SoftOrd_,No\[Gamma]inU_]:=Module[{mypoly},
-mypoly=Join@@(SymHardTerm[#,dim,Heavylist,SoftOrd]&/@poly);
-mypoly=IBPAllPoly[mypoly];
-(* Simplify the result when Ulist has no \[Gamma] dependence *)
+mypoly=IBPAllPoly[poly];
+mypoly=SymHardTerm[#,dim,Heavylist,SoftOrd]&/@mypoly;
+mypoly=SimplifyPoly[mypoly];
+mypoly=Join@@(MoveLorentzTerm/@mypoly);
+(* simplify the result when Ulist has no \[Gamma] dependence *)
 If[No\[Gamma]inU,
 (* delete terms with odd numbers of Subscript[\[Gamma], \[Mu]] or only one \[Sigma]F *)
 mypoly=Select[mypoly,EvenQ[Count[#[[2]],Subscript[\[Gamma], __],All]]&];
 mypoly=Select[mypoly,!((Count[#[[2]],Subscript[\[Gamma], __],All]==0)&&(Count[#[[2]],\[Sigma]F,All]==1))&];
 (* carry out trace of \[Gamma] *)
 mypoly=Join@@(Trace\[Gamma]Term/@mypoly);
-mypoly=Select[mypoly,Count[#[[2]],{Subscript[F, \[Mu]_,\[Mu]_]}|{__,Subscript[F, \[Mu]_,\[Mu]_]}]==0&];
 ];
 (* organize and simplify *)
 mypoly=OperIndexOrgTerm/@mypoly;
 mypoly=SimplifyPoly[mypoly];
 mypoly=Join@@(PPFOrgTerm/@mypoly);
+mypoly=SimplifyPoly[mypoly];
+mypoly=Join@@(FUOrgTerm/@mypoly);
+mypoly=Join@@(MoveLorentzTerm/@mypoly);
 mypoly=OperIndexOrgTerm/@mypoly;
 mypoly=SimplifyPoly[mypoly];
 Return[mypoly];
@@ -811,7 +742,7 @@ Return[mypoly];
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*CDE Quantities*)
 
 
@@ -910,65 +841,129 @@ SubscriptBox[\(\[Nu]\), \(3\)]]\);
 
 
 (* ::Input::Initialization:: *)
+Clear[ConvertDummy];
 Clear[UCDEDim];
 Clear[GCDEDim];
 
 
 (* ::Input::Initialization:: *)
-(* Generate the poly Subsuperscript[U, i, CDE] at a given operator dimension *)
-UCDEDim[dim_,OptionsPattern[{Udim->1,Uoper->{}}]]:=Module[{Uexpr,n,coeff,UArray,qSec,OperArray,OrdArray,mypoly},
-Uexpr=OptionValue[Uoper];
-Uexpr=If[Uexpr==={},U,Uexpr];
-If[Uexpr===1,If[dim==0,Return[{{{{1}},{},{0,0,0}}}],Return[{}]]];
-n=dim-OptionValue[Udim];
-If[(!IntegerQ[n])||(n<0),Return[{}]];
-coeff=1/n!;
-qSec={Join[{coeff},Subscript[dq,Subscript[\[Mu],#]]&/@Range[1,n]]};
-UArray=Flatten[{(#/.{Times->List,NonCommutativeMultiply->List})}]&/@Flatten[{(Uexpr/.Plus->List)}];
-OrdArray={dim,n,Length[DeleteCases[Flatten[Cases[#,Subscript[__, a__]->{a}]],_?NumericQ]]}&/@UArray;
-OperArray={Join[Subscript[P,Subscript[\[Mu],#]]&/@Range[n],#]}&/@UArray;
-mypoly=MapThread[{qSec,#1,#2}&,{OperArray,OrdArray}];
-mypoly=SimplifyPoly[mypoly];
-Return[mypoly];
-];
-
-(* Generate the poly Subsuperscript[G, Subscript[\[Nu], i]Subscript[\[Nu], j], CDE] at a given operator dimension *)
-GCDEDim[{\[Nu]i_,\[Nu]j_},dim_]:=Module[{n,coeff,expr,qSec,Oper,Ord,mypoly},
-(* Abort if {\[Nu]i, \[Nu]j} contiains Subscript[\[Mu], __] *)
-If[MemberQ[{\[Nu]i,\[Nu]j},Subscript[\[Mu], _]],
-Print["GCDEDim[] called with invalid input {\[Nu]i, \[Nu]j}=",{\[Nu]i,\[Nu]j}];
-Print["\[Mu] is reserved for dummy indices and cannot be used as open indices for GCDEDim[]."];
+(* Convert dummy indices in a list into Subscript[\[Mu], i] indices *)
+ConvertDummy[list_,n\[Mu]_]:=Module[{indices,indicesOpen,indicesDummy,mylist},
+indices=DeleteCases[Cases[list,Subscript[_, a__]->a],_?NumericQ];
+indicesOpen=Select[indices,(Count[indices,#]==1)&];
+If[Count[indicesOpen,Subscript[\[Mu], _]]>0,
+Print["ConvertDummy called with list containing \!\(\*SubscriptBox[\(\[Mu]\), \(i\)]\) open indices: list=",list];
 Print["Aborted."];
 Abort[];
 ];
+indicesDummy=DeleteDuplicates[Select[indices,(Count[indices,#]>1)&]];
+mylist=list/.MapThread[(#1->Subscript[\[Mu], n\[Mu]+#2])&,{indicesDummy,Range[Length[indicesDummy]]}];
+Return[mylist];
+];
+
+(* Poly Subsuperscript[U, i, CDE]=\!\(
+\*SubsuperscriptBox[\(\[Sum]\), \(n = 0\), \(\[Infinity]\)]\(
+\*FractionBox[\(1\), \(n!\)]\((\(
+\*SubscriptBox[\(P\), 
+SubscriptBox[\(\[Mu]\), \(1\)]] ... \)
+\*SubscriptBox[\(P\), 
+SubscriptBox[\(\[Mu]\), \(n\)]]
+\*SubscriptBox[\(U\), \(i\)])\)
+\*SubscriptBox[\(dq\), 
+SubscriptBox[\(\[Mu]\), \(1\)]]\)\)...Subscript[dq, Subscript[\[Mu], n]] at a given operator dimension *)
+UCDEDim[dim_,OptionsPattern[{Udim->1,Uoper->{}}]]:=Module[{Uexpr,n,coeff,UArray,qSec,OperArray,ndummyArray,mypoly},
+Uexpr=OptionValue[Uoper];
+If[Uexpr==={},Uexpr=U];
+If[NumericQ[Uexpr],If[dim==0,Return[{{{{Uexpr}},{},{0,0}}}],Return[{}]]];
+n=dim-OptionValue[Udim];
+If[(!IntegerQ[n])||(n<0),Return[{}]];
+coeff=1/n!;
+qSec={Join[{coeff},Subscript[dq,Subscript[\[Mu],#]]&/@Range[n]]};
+UArray=Flatten[{#/.{Times->List,NonCommutativeMultiply->List}}]&/@Flatten[{Uexpr/.Plus->List}];
+OperArray={Join[Subscript[P,Subscript[\[Mu],#]]&/@Range[n],ConvertDummy[#,n]]}&/@UArray;
+ndummyArray=n+(Count[Tally[DeleteCases[Cases[#,Subscript[_, a__]->a],_?NumericQ]],_?(#[[2]]>1&)]&/@UArray);
+mypoly=MapThread[{qSec,#1,{dim,#2}}&,{OperArray,ndummyArray}];
+Return[mypoly];
+];
+
+(* Poly Subsuperscript[G, Subscript[\[Nu], i]Subscript[\[Nu], j], CDE]=-i\!\(
+\*SubsuperscriptBox[\(\[Sum]\), \(n = 0\), \(\[Infinity]\)]\(
+\*FractionBox[\(n + 1\), \(\((n + 2)\)!\)]\((\(
+\*SubscriptBox[\(P\), 
+SubscriptBox[\(\[Mu]\), \(1\)]] ... \)
+\*SubscriptBox[\(P\), 
+SubscriptBox[\(\[Mu]\), \(n\)]]
+\*SubscriptBox[\(F\), \(
+\*SubscriptBox[\(\[Nu]\), \(i\)]
+\*SubscriptBox[\(\[Nu]\), \(j\)]\)])\)
+\*SubscriptBox[\(dq\), 
+SubscriptBox[\(\[Mu]\), \(1\)]]\)\)...Subscript[dq, Subscript[\[Mu], n]] at a given operator dimension *)
+GCDEDim[{\[Nu]i_,\[Nu]j_},dim_]:=Module[{n,coeff,expr,qSec,Oper,mypoly},
+If[MemberQ[{\[Nu]i,\[Nu]j},Subscript[\[Mu], _]],
+Print["GCDEDim[] called with invalid input {\[Nu]i, \[Nu]j}=",{\[Nu]i,\[Nu]j}];
+Print["\!\(\*SubscriptBox[\(\[Mu]\), \(i\)]\) is reserved for dummy indices and cannot be used as open indices for GCDEDim[]."];
+Print["Aborted."];
+Abort[];
+];
+If[\[Nu]i===\[Nu]j,Return[{}]];
 n=dim-2;
 If[(!IntegerQ[n])||(n<0),Return[{}]];
 coeff=-I (n+1)/(n+2)!;
-qSec={Join[{coeff},Subscript[dq,Subscript[\[Mu],#]]&/@Range[1,n]]};
-Oper={Join[Subscript[P,Subscript[\[Mu],#]]&/@Range[1,n],{Subscript[F,\[Nu]i,\[Nu]j]}]};
-Ord={dim,n,2};
-mypoly={{qSec,Oper,Ord}};
-mypoly=SimplifyPoly[mypoly];
+qSec={Join[{coeff},Subscript[dq,Subscript[\[Mu],#]]&/@Range[n]]};
+Oper={Join[Subscript[P,Subscript[\[Mu],#]]&/@Range[n],{Subscript[F,\[Nu]i,\[Nu]j]}]};
+mypoly={{qSec,Oper,{dim,n}}};
 Return[mypoly];
 ];
 
 
 (* ::Subsubsection::Closed:: *)
-(*\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) and \!\(\*SubsuperscriptBox[\(P\), \(\[Mu]\), \(CDE\)]\)*)
+(*\!\(\*SubsuperscriptBox[\(P\), \(\[Mu]\), \(CDE\)]\) and \!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\)*)
 
 
 (* ::Input::Initialization:: *)
+Clear[PCDEDim];
 Clear[XCDEDim];
 Clear[\[CapitalDelta]XStrDimPar];
 Clear[\[CapitalDelta]XStrnX];
 Clear[\[CapitalDelta]CDEDimGen];
 Clear[Load\[CapitalDelta]CDEPolyCache];
 Clear[\[CapitalDelta]CDEDim];
-Clear[PCDEDim];
 
 
 (* ::Input::Initialization:: *)
-(* Generate the poly X^CDE=(Subscript[q, Subscript[\[Nu], 1]]Subsuperscript[G, Subscript[\[Nu], 1]Subscript[\[Nu], 2], CDE]+\!\(
+(* Poly Subsuperscript[P, Subscript[\[Nu], i], CDE]=-Subscript[q, Subscript[\[Nu], i]]+\!\(
+\*SubsuperscriptBox[\(G\), \(
+\*SubscriptBox[\(\[Nu]\), \(i\)]\[Rho]\), \(CDE\)]
+\*SubscriptBox[\(dq\), \(\[Rho]\)]\)=-Subscript[q, Subscript[\[Nu], i]]-i\!\(
+\*SubsuperscriptBox[\(\[Sum]\), \(n = 0\), \(\[Infinity]\)]\(
+\*FractionBox[\(n + 1\), \(\((n + 2)\)!\)]\((\(
+\*SubscriptBox[\(P\), 
+SubscriptBox[\(\[Mu]\), \(1\)]] ... \)
+\*SubscriptBox[\(P\), 
+SubscriptBox[\(\[Mu]\), \(n\)]]
+\*SubscriptBox[\(F\), \(
+\*SubscriptBox[\(\[Nu]\), \(i\)]
+\*SubscriptBox[\(\[Mu]\), \(n + 1\)]\)])\)
+\*SubscriptBox[\(dq\), 
+SubscriptBox[\(\[Mu]\), \(1\)]]\)\)...Subscript[dq, Subscript[\[Mu], n]]Subscript[dq, Subscript[\[Mu], n+1]] at a given operator dimension *)
+PCDEDim[\[Nu]i_,dim_]:=Module[{n,coeff,qSec,Oper,mypoly},
+If[MatchQ[\[Nu]i,Subscript[\[Mu], _]],
+Print["PCDEDim[] called with invalid input \[Nu]i=",\[Nu]i];
+Print["\!\(\*SubscriptBox[\(\[Mu]\), \(i\)]\) is reserved for dummy indices and cannot be used as open indices for PCDEDim[]."];
+Print["Aborted."];
+Abort[];
+];
+If[dim==0,Return[{{{{-1,Subscript[q, \[Nu]i]}},{},{0,0}}}]];
+n=dim-2;
+If[(!IntegerQ[n])||(n<0),Return[{}]];
+coeff=-I (n+1)/(n+2)!;
+qSec={Join[{coeff},Subscript[dq,Subscript[\[Mu],#]]&/@Range[n+1]]};
+Oper={Join[Subscript[P,Subscript[\[Mu],#]]&/@Range[n],{Subscript[F,\[Nu]i,Subscript[\[Mu],n+1]]}]};
+mypoly={{qSec,Oper,{dim,n+1}}};
+Return[mypoly];
+];
+
+(* Poly X^CDE=(Subscript[q, Subscript[\[Nu], 1]]Subsuperscript[G, Subscript[\[Nu], 1]Subscript[\[Nu], 2], CDE]+\!\(
 \*SubsuperscriptBox[\(G\), \(
 \*SubscriptBox[\(\[Nu]\), \(1\)]
 \*SubscriptBox[\(\[Nu]\), \(2\)]\), \(CDE\)]
@@ -984,7 +979,7 @@ SubscriptBox[\(\[Nu]\), \(1\)]]\))Subscript[dq, Subscript[\[Nu], 2]]-\!\(
 SubscriptBox[\(\[Nu]\), \(2\)]]
 \*SubscriptBox[\(dq\), 
 SubscriptBox[\(\[Nu]\), \(3\)]]\ at\ a\ given\ operator\ dimension\) *)
-XCDEDim[dim_]:=Module[{polyT1,polyT2,polyT3,polyArray,mypoly},
+XCDEDim[dim_]:=Module[{poly1,poly2,poly3,polyArray,mypoly},
 If[(!IntegerQ[dim])||(dim<2),Return[{}]];
 (* the firt two terms (Subscript[q, Subscript[\[Nu], 1]]Subsuperscript[G, Subscript[\[Nu], 1]Subscript[\[Nu], 2], CDE]+\!\(
 \*SubsuperscriptBox[\(G\), \(
@@ -992,12 +987,11 @@ If[(!IntegerQ[dim])||(dim<2),Return[{}]];
 \*SubscriptBox[\(\[Nu]\), \(2\)]\), \(CDE\)]
 \*SubscriptBox[\(q\), 
 SubscriptBox[\(\[Nu]\), \(1\)]]\))Subscript[dq, Subscript[\[Nu], 2]] *)
-polyT1={{{{Subscript[q, Subscript[\[Nu], 1]]}},{},{0,0,1}}};
-polyT2=GCDEDim[{Subscript[\[Nu], 1],Subscript[\[Nu], 2]},dim];
-polyT3={{{{Subscript[dq, Subscript[\[Nu], 2]]}},{},{0,0,1}}};
-mypoly=SumPolys[{MultiplyPolys[{polyT1,polyT2,polyT3}],MultiplyPolys[{polyT2,polyT1,polyT3}]}];
-mypoly=ContractPolyIndices[mypoly,{\[Nu]}];
-mypoly=SimplifyPoly[mypoly];
+poly1={{{{Subscript[q, Subscript[\[Nu], 1]]}},{},{0,0}}};
+poly2=GCDEDim[{Subscript[\[Nu], 1],Subscript[\[Nu], 2]},dim];
+poly3={{{{Subscript[dq, Subscript[\[Nu], 2]]}},{},{0,0}}};
+mypoly=Join[MultiplyPolys[{poly1,poly2,poly3}],MultiplyPolys[{poly2,poly1,poly3}]];
+mypoly=CollectPoly[mypoly];
 (* the last term -\!\(
 \*SubsuperscriptBox[\(G\), \(
 \*SubscriptBox[\(\[Nu]\), \(1\)]
@@ -1009,83 +1003,59 @@ mypoly=SimplifyPoly[mypoly];
 SubscriptBox[\(\[Nu]\), \(2\)]]
 \*SubscriptBox[\(dq\), 
 SubscriptBox[\(\[Nu]\), \(3\)]]\) *)
-polyArray=MultiplyPolys[{GCDEDim[{Subscript[\[Nu], 1],Subscript[\[Nu], 2]},#],GCDEDim[{Subscript[\[Nu], 1],Subscript[\[Nu], 3]},dim-#]}]&/@Range[2,dim-2];
-polyT1=SumPolys[polyArray];
-polyT2={{{{-1,Subscript[dq, Subscript[\[Nu], 2]],Subscript[dq, Subscript[\[Nu], 3]]}},{},{0,0,2}}};
-polyT3=MultiplyPolys[{polyT1,polyT2}];
-polyT3=ContractPolyIndices[polyT3,{\[Nu]}];
+poly1=Join@@(MultiplyPolys[{GCDEDim[{Subscript[\[Nu], 1],Subscript[\[Nu], 2]},#],GCDEDim[{Subscript[\[Nu], 1],Subscript[\[Nu], 3]},dim-#]}]&/@Range[2,dim-2]);
+poly1=CollectPoly[poly1];
+poly2={{{{-1,Subscript[dq, Subscript[\[Nu], 2]],Subscript[dq, Subscript[\[Nu], 3]]}},{},{0,0}}};
+poly3=MultiplyPolys[{poly1,poly2}];
 (* sum the above terms *)
-mypoly=SumPolys[{mypoly,polyT3}];
+mypoly=Join[mypoly,poly3];
 Return[mypoly];
 ];
 
-(* Compute the poly Subscript[\[CapitalDelta], i]Subscript[X\[CapitalDelta], i]Subscript[X\[CapitalDelta], i]...Subscript[X\[CapitalDelta], i] for a given dimpar of X *)
-\[CapitalDelta]XStrDimPar[imass_,dimpar_]:=Module[{polyDelta,polyArray,mypoly},
-polyDelta={{{{Subscript[\[CapitalDelta], imass]}},{},{0,0,0}}};
+(* Poly Subscript[\[CapitalDelta], i]Subscript[X\[CapitalDelta], i]Subscript[X\[CapitalDelta], i]...Subscript[X\[CapitalDelta], i] for a given dimpar of X *)
+\[CapitalDelta]XStrDimPar[i_,dimpar_]:=Module[{polyDelta,polyArray,mypoly},
+polyDelta={{{{Subscript[\[CapitalDelta], i]}},{},{0,0}}};
 polyArray=MultiplyPolys[{polyDelta,XCDEDim[#]}]&/@dimpar;
 mypoly=MultiplyPolys[Join[polyArray,{polyDelta}]];
 Return[mypoly];
 ];
 
-(* Compute the poly Subscript[\[CapitalDelta], i]Subscript[X\[CapitalDelta], i]Subscript[X\[CapitalDelta], i]...Subscript[X\[CapitalDelta], i] with nX of X at a given operator dimension *)
-\[CapitalDelta]XStrnX[imass_,nX_,dim_]:=Module[{mydimparlist,polyArray,mypoly},
+(* Poly Subscript[\[CapitalDelta], i]Subscript[X\[CapitalDelta], i]Subscript[X\[CapitalDelta], i]...Subscript[X\[CapitalDelta], i] with nX of X at a given operator dimension *)
+\[CapitalDelta]XStrnX[i_,nX_,dim_]:=Module[{dimparArray,polyArray,mypoly},
 If[(!IntegerQ[dim])||(dim<2nX),Return[{}]];
-mydimparlist=Flatten[Permutations/@IntegerPartitions[dim-nX,{nX}],1]+1;
-polyArray=\[CapitalDelta]XStrDimPar[imass,#]&/@mydimparlist;
-mypoly=SumPolys[polyArray];
+dimparArray=Flatten[Permutations/@IntegerPartitions[dim-nX,{nX}],1]+1;
+mypoly=Join@@(\[CapitalDelta]XStrDimPar[i,#]&/@dimparArray);
+mypoly=CollectPoly[mypoly];
 Return[mypoly];
 ];
 
-(* Generate the poly Subsuperscript[\[CapitalDelta], i, CDE]=Subscript[\[CapitalDelta], i]+Subscript[\[CapitalDelta], i]X^CDESubscript[\[CapitalDelta], i]+Subscript[\[CapitalDelta], i]X^CDESubscript[\[CapitalDelta], i]X^CDESubscript[\[CapitalDelta], i]+... at a given operator dimension *)
-\[CapitalDelta]CDEDimGen[imass_,dim_]:=Module[{polyArray,mypoly},
+(* Poly Subsuperscript[\[CapitalDelta], i, CDE]=Subscript[\[CapitalDelta], i]+Subscript[\[CapitalDelta], i]X^CDESubscript[\[CapitalDelta], i]+Subscript[\[CapitalDelta], i]X^CDESubscript[\[CapitalDelta], i]X^CDESubscript[\[CapitalDelta], i]+... at a given operator dimension *)
+\[CapitalDelta]CDEDimGen[i_,dim_]:=Module[{mypoly},
 If[(!IntegerQ[dim])||(dim<0),Return[{}]];
-polyArray=\[CapitalDelta]XStrnX[imass,#,dim]&/@Range[0,Floor[dim/2]];
-mypoly=SumPolys[polyArray];
+mypoly=Join@@(\[CapitalDelta]XStrnX[i,#,dim]&/@Range[0,Floor[dim/2]]);
+mypoly=CollectPoly[mypoly];
 Return[mypoly];
 ];
 
-(* Load the quantity \[CapitalDelta]CDEPolyCache that stores the pre-evaluated \[CapitalDelta]CDE polys *)
+(* Load the quantity \[CapitalDelta]CDEPolyCache that stores the pre-evaluated \[CapitalDelta]CDE polys for dim [0, 10] *)
 Load\[CapitalDelta]CDEPolyCache[]:=Module[{},
 \[CapitalDelta]CDEPolyCache=\[CapitalDelta]CDEDimGen[1,#]&/@Range[0,10];
 Return[];
 ];
 
-(* Get the poly Subsuperscript[\[CapitalDelta], i, CDE] at a given operator dimension *)
-\[CapitalDelta]CDEDim[imass_,dim_]:=Module[{},
+(* Poly Subsuperscript[\[CapitalDelta], i, CDE] at a given operator dimension *)
+\[CapitalDelta]CDEDim[i_,dim_]:=Module[{},
 If[(!IntegerQ[dim])||(dim<0),Return[{}]];
-If[(!ValueQ[\[CapitalDelta]CDEPolyCache])||(dim>10),Return[\[CapitalDelta]CDEDimGen[imass,dim]]];
-Return[\[CapitalDelta]CDEPolyCache[[dim+1]]/.{Subscript[\[CapitalDelta], 1]->Subscript[\[CapitalDelta], imass]}];
-];
-
-(* Generate the poly Subsuperscript[P, Subscript[\[Nu], i], CDE]=-Subscript[q, Subscript[\[Nu], i]]+\!\(
-\*SubsuperscriptBox[\(G\), \(
-\*SubscriptBox[\(\[Nu]\), \(i\)]
-\*SubscriptBox[\(\[Nu]\), \(0\)]\), \(CDE\)]
-\*SubscriptBox[\(dq\), 
-SubscriptBox[\(\[Nu]\), \(0\)]]\ at\ a\ given\ operator\ dimension\) *)
-PCDEDim[\[Nu]i_,dim_]:=Module[{polyT1,polyT2,mypoly},
-(* Abort if \[Nu]i is Subscript[\[Mu], __] *)
-If[MatchQ[\[Nu]i,Subscript[\[Mu], _]],
-Print["PCDEDim[] called with invalid input \[Nu]i=",\[Nu]i];
-Print["\[Mu] is reserved for dummy indices and cannot be used as open indices for PCDEDim[]."];
-Print["Aborted."];
-Abort[];
-];
-If[dim==0,Return[{{{{-1,Subscript[q, \[Nu]i]}},{},{0,0,1}}}]];
-If[dim<2,Return[{}]];
-polyT1=GCDEDim[{\[Nu]i,Subscript[\[Nu], 0]},dim];
-polyT2={{{{Subscript[dq, Subscript[\[Nu], 0]]}},{},{0,0,1}}};
-mypoly=MultiplyPolys[{polyT1,polyT2}];
-mypoly=ContractPolyIndices[mypoly,{\[Nu]}];
-Return[mypoly];
+If[(!ValueQ[\[CapitalDelta]CDEPolyCache])||(dim>10),Return[\[CapitalDelta]CDEDimGen[i,dim]]];
+Return[\[CapitalDelta]CDEPolyCache[[dim+1]]/.{Subscript[\[CapitalDelta], 1]->Subscript[\[CapitalDelta], i]}];
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Supertrace Manipulations*)
 
 
-(* ::Text:: *)
+(* ::Text::Closed:: *)
 (*Descriptions*)
 
 
@@ -1101,7 +1071,7 @@ SubscriptBox[\(\[Mu]\), \(1\)], \(CDE\)] ... \)Subsuperscript[P, Subscript[\[Mu]
 \*SubsuperscriptBox[\(\[CapitalLambda]\), \(i\), \(CDE\)]\))(\!\(
 \*SubsuperscriptBox[\(P\), 
 SubscriptBox[\(\[Nu]\), \(1\)], \(CDE\)] ... \)Subsuperscript[P, Subscript[\[Nu], m], CDE])Subsuperscript[U, k, CDE] ... ];
-where the propagator can be either bosonic Subsuperscript[\[CapitalDelta], i, CDE], or fermionic Subsuperscript[\[CapitalLambda], i, CDE]; the last Subsuperscript[U, k, CDE] factor is allowed to be absent;
+where the propagator can be either bosonic Subsuperscript[\[CapitalDelta], i, CDE], or fermionic Subsuperscript[\[CapitalLambda], i, CDE]; the last Subsuperscript[U, k, CDE] factor is allowed to be absent;"Subscript[|, hard]" denotes the hard region contributions;
 
 Fermionic propagators are addressed by
  Subsuperscript[\[CapitalLambda], i, CDE]=1/(Pslash-Subscript[m, i])=1/(P^2-Subsuperscript[m, i, 2]-\[CapitalSigma])(Subscript[m, i]+Subscript[P, \[Rho]]Subscript[\[Gamma], \[Rho]])=(\!\(
@@ -1126,7 +1096,7 @@ Options for the main function SuperTrace[];
 Udimlist     default {1,...,1}    Minimum operator dimensions of {Subscript[U, k]};
 Heavylist    default    {1}       Heavy mass labels;
 SoftOrd      default     0        Additional power(s) of Subscript[m, light]/Subscript[m, heavy];
-No\[Gamma]inU       default   False      No Dirac matrices Subscript[\[Gamma], \[Mu]] in {Subscript[U, k]};
+No\[Gamma]inU       default   False      No Dirac matrices Subscript[\[Gamma], \[Mu]] in {Subscript[U, k]} factors;
 display      default   False      Print result;
 
 Alternatively, one can use the function SuperTraceFromExpr, which takes an expression fexpr as input for the functional operator f;
@@ -1151,7 +1121,7 @@ Clear[STrPrint];
 Clear[STrParameters];
 Clear[STrBflists];
 Clear[STrflistUFrame];
-Clear[DimparsBSTrDim];
+Clear[DimparsBSTr];
 Clear[BSTrPolyDimPar];
 Clear[BSTrPolyGen];
 
@@ -1169,55 +1139,112 @@ Return[Row[mylist]];
 ];
 
 (* Get the set of underlying supertrace "parameters" for flist *)
-STrParameters[flist_,Udimlist_]:=Module[{myflist,masslabels,mytypelist,my\[CapitalDelta]split,mycoeff,Ucoefflist,Uoperlist,myUlist,myUdimlist,myP\[CapitalDelta]PUlist,myP\[CapitalDelta]PUsplit,myPlocations,myPindices,myParameters},
+STrParameters[flist_,Udimlist_]:=Module[{myflist,masslabels,mytypelist,my\[CapitalDelta]split,mycoeff,PUframeArray,nUArray,Ucoefflist,Uoperlist,myUlist,myUdimlist,myP\[CapitalDelta]PUlist,myP\[CapitalDelta]PUsplit,myPlocations,myPindices,myParameters},
 (* canonicalize flist into myflist *)
 myflist=Join@@(Flatten[{ReplaceAll[#,{Times->List,NonCommutativeMultiply->List}]}]&/@flist);
 If[!NumericQ[myflist[[1]]],myflist=Insert[myflist,1,1]];
 (* masslabels and propagator types *)
 masslabels=Cases[myflist,Subscript[\[CapitalDelta], i_]|Subscript[\[CapitalLambda], i_]->i];
-mytypelist=Cases[myflist,Subscript[\[CapitalDelta], __]|Subscript[\[CapitalLambda], __]]/.{Subscript[\[CapitalDelta], __]->1,Subscript[\[CapitalLambda], __]->-1};
+mytypelist=Cases[myflist,Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]]/.{Subscript[\[CapitalDelta], _]->1,Subscript[\[CapitalLambda], _]->-1};
 If[masslabels==={},
-Print["No propagators detected in the input flist."];
+Print["Invalid input f."];
+Print["f must be made of the propagator blocks f=[ ... (\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(n\)], \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) or \!\(\*SubsuperscriptBox[\(\[CapitalLambda]\), \(i\), \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(m\)], \(CDE\)]\))\!\(\*SubsuperscriptBox[\(U\), \(k\), \(CDE\)]\) ... ]."];
+Print["No propagators detected: input flist=",flist];
+Print["Aborted."];
+Abort[];
+];
+If[(!AllTrue[masslabels,IntegerQ])||(Min[masslabels]<0),
+Print["Invalid input f."];
+Print["mass labels must be non-negative integers: input flist=",flist];
 Print["Aborted."];
 Abort[];
 ];
 (* coeff, Ulist, and Udimlist *)
-If[SequenceCount[DeleteCases[myflist,_?NumericQ|Subscript[m, __]|Subscript[\[Eta], __]|Subscript[\[Gamma], __]|Subscript[P, __]]/.{Subscript[\[CapitalDelta], __]|Subscript[\[CapitalLambda], __]->\[CapitalDelta]},{\[CapitalDelta],\[CapitalDelta]}]>0,
-Print["Missing U factor between \[CapitalDelta]|\[CapitalLambda] in the input flist."];
+If[SequenceCount[DeleteCases[myflist,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[Epsilon], __]|Subscript[P, _]]/.{Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]->\[CapitalDelta]},{\[CapitalDelta],\[CapitalDelta]}]>0,
+Print["Invalid input f."];
+Print["f must be made of the propagator blocks f=[ ... (\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(n\)], \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) or \!\(\*SubsuperscriptBox[\(\[CapitalLambda]\), \(i\), \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(m\)], \(CDE\)]\))\!\(\*SubsuperscriptBox[\(U\), \(k\), \(CDE\)]\) ... ]."];
+Print["Missing U factor between \[CapitalDelta]|\[CapitalLambda]: input flist=",flist];
 Print["Aborted."];
 Abort[];
 ];
-my\[CapitalDelta]split=Split[myflist,!MatchQ[#2,Subscript[\[CapitalDelta], __]|Subscript[\[CapitalLambda], __]]&];
-mycoeff=Times@@DeleteCases[my\[CapitalDelta]split[[1]],Subscript[P, __]];
+my\[CapitalDelta]split=Split[myflist,!MatchQ[#2,Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]]&];
+If[DeleteCases[my\[CapitalDelta]split[[1]],_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]|Subscript[P, _]]=!={},
+Print["Invalid input f."];
+Print["f must be made of the propagator blocks f=[ ... (\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(n\)], \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) or \!\(\*SubsuperscriptBox[\(\[CapitalLambda]\), \(i\), \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(m\)], \(CDE\)]\))\!\(\*SubsuperscriptBox[\(U\), \(k\), \(CDE\)]\) ... ]."];
+Print["U factor found before the first propagator: input flist=",flist];
+Print["Aborted."];
+Abort[];
+];
+mycoeff=Times@@DeleteCases[my\[CapitalDelta]split[[1]],Subscript[P, _]];
 my\[CapitalDelta]split=my\[CapitalDelta]split[[2;;]];
-Ucoefflist=(Times@@Cases[#,_?NumericQ|Subscript[m, __]|Subscript[\[Eta], __]])&/@my\[CapitalDelta]split;
-Uoperlist=DeleteCases[#,_?NumericQ|Subscript[m, __]|Subscript[\[Eta], __]|Subscript[\[CapitalDelta], __]|Subscript[\[CapitalLambda], __]|Subscript[P, __]]&/@my\[CapitalDelta]split;
+PUframeArray=DeleteCases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[Epsilon], __]|Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]]&/@my\[CapitalDelta]split;
+nUArray=(Length[Split[Join[{Subscript[P, 0]},#],!(MatchQ[#1,Subscript[P, _]]&&!MatchQ[#2,Subscript[P, _]])&]]&/@PUframeArray)-1;
+If[Max[nUArray]>1,
+Print["Invalid input f."];
+Print["f must be made of the propagator blocks f=[ ... (\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(n\)], \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) or \!\(\*SubsuperscriptBox[\(\[CapitalLambda]\), \(i\), \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(m\)], \(CDE\)]\))\!\(\*SubsuperscriptBox[\(U\), \(k\), \(CDE\)]\) ... ]."];
+Print["More than one U factors found between two adjacent propagators: input flist=",flist];
+Print["Aborted."];
+Abort[];
+];
+Ucoefflist=(Times@@Cases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]])&/@my\[CapitalDelta]split;
+Uoperlist=DeleteCases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]|Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]|Subscript[P, _]]&/@my\[CapitalDelta]split;
 Uoperlist=If[Length[#]>1,#/.List->NonCommutativeMultiply,#/.List->Times]&/@Uoperlist;
 myUlist=MapThread[#1 #2&,{Ucoefflist,Uoperlist}];
 If[(Length[Udimlist]!=0)&&(Length[Udimlist]!=Length[myUlist]),
-Print["Mismatch between the length of U and Udim: Ulist=",myUlist,", Udimlist=",Udimlist];
+Print["Invalid input option Udimlist."];
+Print["Length of Udimlist does not match number of U factors: Ulist=",myUlist,", Udimlist=",Udimlist];
 Print["Aborted."];
 Abort[];
 ];
-If[Udimlist==={},myUdimlist=1&/@myUlist,myUdimlist=Udimlist];
-If[Last[myUlist]===1,myUdimlist[[-1]]=0];
+myUdimlist=Udimlist; If[myUdimlist==={},myUdimlist=1&/@myUlist];
+If[DeleteCases[Last[my\[CapitalDelta]split],_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[Epsilon], __]|Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]|Subscript[P, _]]==={},
+If[(Length[Udimlist]!=0)&&Last[Udimlist]!=0,
+Print["Invalid input option Udimlist."];
+Print["Nonzero last Udimlist for trivial last U factor: Ulist=",myUlist,", Udimlist=",Udimlist];
+Print["Aborted."];
+Abort[];
+];
+myUdimlist[[-1]]=0;
+];
 (* Plocations and Pindices *)
-myP\[CapitalDelta]PUlist=DeleteCases[myflist,_?NumericQ|Subscript[m, __]|Subscript[\[Eta], __]|Subscript[\[Gamma], __]]/.{Subscript[P, __]->P,Subscript[\[CapitalDelta], __]|Subscript[\[CapitalLambda], __]->\[CapitalDelta]};
+myP\[CapitalDelta]PUlist=DeleteCases[myflist,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[Epsilon], __]]/.{Subscript[P, _]->P,Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]->\[CapitalDelta]};
 myP\[CapitalDelta]PUsplit=Split[myP\[CapitalDelta]PUlist,(MatchQ[#1,\[CapitalDelta]|P]||!MatchQ[#2,\[CapitalDelta]|P])&];
+If[Length[myP\[CapitalDelta]PUsplit]>Length[masslabels],
+Print["Invalid input f."];
+Print["f must be made of the propagator blocks f=[ ... (\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(n\)], \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) or \!\(\*SubsuperscriptBox[\(\[CapitalLambda]\), \(i\), \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(m\)], \(CDE\)]\))\!\(\*SubsuperscriptBox[\(U\), \(k\), \(CDE\)]\) ... ]."];
+Print["\!\(\*SubscriptBox[\(P\), \(\[Mu]\)]\) factors after the last U factor detected: input flist=",flist];
+Print["Aborted."];
+Abort[];
+];
 myP\[CapitalDelta]PUsplit=MapThread[(Cases[#1,P|\[CapitalDelta]]/.{P->0,\[CapitalDelta]->#2})&,{myP\[CapitalDelta]PUsplit,Range[Length[myP\[CapitalDelta]PUsplit]]}];
 myPlocations=Join@@(DeleteCases[Accumulate[#]-Reverse[Accumulate[Reverse[#]]],0]&/@myP\[CapitalDelta]PUsplit);
 myPindices=Cases[myflist,Subscript[P, \[Nu]_]->\[Nu]];
+If[Length[myPindices]!=Length[myPlocations],
+Print["Length mismatch between Plocations and Pindices:"];
+Print["Plocation=",myPlocations,", Pindices=",myPindices];
+Print["Aborted."];
+Abort[];
+];
 (* put all the inputs together *)
 myParameters={masslabels,mytypelist,mycoeff,myUlist,myPlocations,myPindices,myUdimlist};
 Return[myParameters];
 ];
 
-(* Get the set of bosonic flists from a given flist *)
-STrBflists[flist_,n\[CapitalSigma]cap_]:=Module[{myParameters,bflistTuples,\[Rho]shiftArray,bflistArray},
+(* Get the set of bosonic flists from a given flist by Subsuperscript[\[CapitalLambda], i, CDE]=(\!\(
+\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)] + \(
+\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]
+\*SuperscriptBox[\(\[CapitalSigma]\), \(CDE\)]
+\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) + \(
+\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]
+\*SuperscriptBox[\(\[CapitalSigma]\), \(CDE\)]
+\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]
+\*SuperscriptBox[\(\[CapitalSigma]\), \(CDE\)]
+\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) + \)...)(Subscript[m, i]+Subscript[P, \[Rho]]Subscript[\[Gamma], \[Rho]]) *)
+STrBflists[flist_,n\[CapitalSigma]cap_,n\[Nu]_]:=Module[{bflistTuples,\[Nu]shiftArray,bflistArray},
 bflistTuples=Tuples[(If[MatchQ[#,Subscript[\[CapitalLambda], __]],#,{{#}}]&/@flist)/.{Subscript[\[CapitalLambda], i_]:>Flatten/@Tuples[{NestList[Join[#,{-(1/2),\[Sigma]F,Subscript[\[CapitalDelta], i]}]&,{Subscript[\[CapitalDelta], i]},n\[CapitalSigma]cap],
-DeleteCases[{{Subscript[m, i],1},{Subscript[P, Subscript[\[Rho], 0]],1,Subscript[\[Gamma], Subscript[\[Rho], 0]]}},_?(MemberQ[#,Subscript[m, 0]]&)]}]}];
-\[Rho]shiftArray=Join[{0},Accumulate[(Count[#,Subscript[\[Rho], 0],All]&/@#)[[;;-2]]]/2]&/@bflistTuples;
-bflistArray=Flatten/@MapThread[MapThread[#1/.{Subscript[\[Rho], 0]->Subscript[\[Rho], #2+1]}&,{#1,#2}]&,{bflistTuples,\[Rho]shiftArray}];
+DeleteCases[{{Subscript[m, i],1},{Subscript[P, Subscript[\[Mu], 0]],1,Subscript[\[Gamma], Subscript[\[Mu], 0]]}},_?(MemberQ[#,Subscript[m, 0]]&)]}]}];
+\[Nu]shiftArray=Join[{0},Accumulate[(Count[#,Subscript[\[Mu], 0],All]&/@#)[[;;-2]]]/2]&/@bflistTuples;
+bflistArray=Flatten/@MapThread[MapThread[#1/.{Subscript[\[Mu], 0]->Subscript[\[Nu], n\[Nu]+1+#2]}&,{#1,#2}]&,{bflistTuples,\[Nu]shiftArray}];
 bflistArray=Select[bflistArray,(Count[#,\[Sigma]F]<=n\[CapitalSigma]cap)&];
 Return[bflistArray];
 ];
@@ -1235,8 +1262,8 @@ myflist=Join[{coeff},myflist];
 Return[myflist];
 ];
 
-(* Get the list of dimension partitions of a given dim for a bosonic supertrace *)
-DimparsBSTrDim[dim_,masslabels_,Plocations_,Udimlist_]:=Module[{\[CapitalDelta]mindim,Umindim,mindimlist,poslist,ULastdim,dimparshift,dimeff,mydimparlist},
+(* Get the list of dimpars of a given operator dimension for a bosonic supertrace *)
+DimparsBSTr[dim_,masslabels_,Plocations_,Udimlist_]:=Module[{\[CapitalDelta]mindim,Umindim,mindimlist,poslist,ULastdim,dimparshift,dimeff,mydimparlist},
 \[CapitalDelta]mindim=0&/@masslabels;
 Umindim=Udimlist;
 mindimlist=Riffle[\[CapitalDelta]mindim,Umindim];
@@ -1259,19 +1286,20 @@ BSTrPolyDimPar[dimpar_,masslabels_,coeff_,Ulist_,Plocations_,Pindices_,Udimlist_
 mytypelist=1&/@masslabels;
 mylist=STrflistUFrame[masslabels,mytypelist,1,Plocations,Pindices];
 mylist=mylist[[2;;]];
-polyArray=MapThread[(#1/.{Subscript[\[CapitalDelta], imass_]:>\[CapitalDelta]CDEDim[imass,#2],Subscript[U, i_]:> UCDEDim[#2,Udim->Udimlist[[i]],Uoper->Ulist[[i]]],Subscript[P, \[Nu]_]:>PCDEDim[\[Nu],#2]})&,{mylist,dimpar}];
+polyArray=MapThread[(#1/.{Subscript[\[CapitalDelta], i_]:>\[CapitalDelta]CDEDim[i,#2],Subscript[U, k_]:> UCDEDim[#2,Udim->Udimlist[[k]],Uoper->Ulist[[k]]],Subscript[P, \[Nu]_]:>PCDEDim[\[Nu],#2]})&,{mylist,dimpar}];
 mypoly=MultiplyPolys[polyArray];
-mypoly=ContractPolyIndices[mypoly,{\[Nu],\[Rho]}];
+mypoly=SimplifyPoly[mypoly];
 mypoly=FTrimPoly[mypoly];
-mypoly=ScalePoly[mypoly,coeff];
+mypoly=ReplacePart[#,1->ScaleqSec[#[[1]],coeff]]&/@mypoly;
 Return[mypoly];
 ];
 
 (* Generate the poly of a bosonic supertrace up to a given operator dimension *)
-BSTrPolyGen[dim_,masslabels_,coeff_,Ulist_,Plocations_,Pindices_,Udimlist_]:=Module[{mydimparlist,polyArray,myexpr,mypoly},
-mydimparlist=Flatten[DimparsBSTrDim[#,masslabels,Plocations,Udimlist]&/@Range[Length[masslabels],dim],1];
-polyArray=BSTrPolyDimPar[#,masslabels,coeff,Ulist,Plocations,Pindices,Udimlist]&/@mydimparlist;
-mypoly=SumPolys[polyArray];
+BSTrPolyGen[dim_,masslabels_,coeff_,Ulist_,Plocations_,Pindices_,Udimlist_]:=Module[{mindim,mydimparArray,polyArray,myexpr,mypoly},
+mindim=Plus@@Udimlist; If[mindim==0,mindim=1];
+mydimparArray=Flatten[DimparsBSTr[#,masslabels,Plocations,Udimlist]&/@Range[mindim,dim],1];
+polyArray=BSTrPolyDimPar[#,masslabels,coeff,Ulist,Plocations,Pindices,Udimlist]&/@mydimparArray;
+mypoly=SimplifyPoly[Join@@polyArray];
 Return[mypoly];
 ];
 
@@ -1288,81 +1316,58 @@ Clear[SuperTraceFromExpr];
 (* ::Input::Initialization:: *)
 (* \!\(\(Compute\ a\ functional\ supertrace\  - iSTr[f]\)
 \*SubscriptBox[\(|\), \(hard\)]\ \(up\ to\ a\ given\ operator\ dimension\ dim\)\) *)
-SuperTrace[dim_,flist_,OptionsPattern[{Udimlist->{},Heavylist->{1},SoftOrd->0,No\[Gamma]inU->False,display->False}]]:=Module[{myflist,myParameters,masslabels,typelist,coeff,Ulist,Plocations,Pindices,myUdimlist,myHeavylist,mySoftOrd,n\[Nu],\[Mu]start,\[Rho]start,supersign,flistU,n\[CapitalSigma]cap,bflistArray,UdimlistArray,BSTrInputArray,polyArray,mypoly,myInput,myPrint,mystr},
+SuperTrace[dim_,flist_,OptionsPattern[{Udimlist->{},Heavylist->{1},SoftOrd->0,No\[Gamma]inU->False,display->False}]]:=Module[{myflist,indices,n\[Nu],\[Mu]start,Parameters,masslabels,typelist,coeff,Ulist,Plocations,Pindices,myUdimlist,myHeavylist,mySoftOrd,supersign,flistU,n\[CapitalSigma]cap,bflistArray,UdimlistArray,BSTrInputArray,polyArray,mypoly,myInput,myPrint,mystr},
 (**)
 (*************************************************************************************)
 (********************************** Interpret Inputs ***********************************)
 (*************************************************************************************)
 (**)
 myflist=flist;
-myParameters=STrParameters[myflist,OptionValue[Udimlist]];
-masslabels=myParameters[[1]];
-typelist=myParameters[[2]];
-coeff=myParameters[[3]];
-Ulist=myParameters[[4]];
-Plocations=myParameters[[5]];
-Pindices=myParameters[[6]];
-myUdimlist=myParameters[[7]];
-(**)
-(*************************************************************************************)
-(******************************* Check Validity of Inputs *******************************)
-(*************************************************************************************)
-(**)
-(* masslabels *)
-If[(!AllTrue[masslabels,IntegerQ])||(Min[masslabels]<0),
-Print["SuperTrace[] called with invalid mass labels:",masslabels];
-Print["mass labels must be non-negative integers."];
-Print["Aborted."];
-Abort[];
+indices=Cases[myflist,Subscript[_, a__]->a];
+n\[Nu]=Max[Join[{0},Cases[indices,Subscript[\[Nu], i_]->i]]];
+If[MemberQ[indices,Subscript[\[Mu], _]],
+\[Mu]start=Min[Cases[indices,Subscript[\[Mu], i_]->i]];
+myflist=myflist/.{Subscript[\[Mu], i_]->Subscript[\[Nu], n\[Nu]+i-\[Mu]start+1]};
+Print["\[Mu] indices are reserved by the package STrEAM as internal dummy indices."];
+Print["Proceeding with the following indices replacements:"];
+Print[Subscript[\[Mu], #]->Subscript[\[Nu], n\[Nu]+#-\[Mu]start+1]]&/@Sort[DeleteDuplicates[Cases[indices,Subscript[\[Mu], i_]->i]]];
+n\[Nu]=Max[Join[{0},Cases[Cases[myflist,Subscript[_, a__]->a],Subscript[\[Nu], i_]->i]]];
 ];
-(* Ulist *)
-If[Length[Ulist]!=Length[masslabels],
-Print["SuperTrace[] called with different numbers of \[CapitalDelta]|\[CapitalLambda] and U: propagators=",Cases[flist,Subscript[\[CapitalDelta], i_]|Subscript[\[CapitalLambda], i_]],", Ulist=",Ulist];
-Print["Aborted."];
-Abort[];
-];
-(* Plocations *)
-If[(Max[Plocations]>Length[masslabels])||(Min[Plocations]<-Length[masslabels])||MemberQ[Plocations,0],
-Print["SuperTrace[] called with invalid Plocations=",Plocations];
-Print["Aborted."];
-Abort[];
-];
-(* Pindices *)
-If[Select[Tally[Pindices],#[[2]]>2&]=!={},
-Print["SuperTrace[] called with invalid P Lorentz indies:",Pindices];
+If[Count[Tally[DeleteCases[indices,_?NumericQ]],_?(#[[2]]>2&)]>0,
+Print["SuperTrace[] called with invalid input flist=",myflist];
+Print["Lorentz indices: ",DeleteCases[indices,_?NumericQ]];
 Print["The same Lorentz index should not appear more than twice."];
 Print["Aborted."];
 Abort[];
 ];
-(* Pindices: replace \[Mu] indices in the input with \[Nu] indices *)
-If[MemberQ[Pindices,Subscript[\[Mu], _]],
-n\[Nu]=Max[Join[{0},Cases[Pindices,Subscript[\[Nu], i_]->i]]];
-\[Mu]start=Min[Cases[Pindices,Subscript[\[Mu], i_]->i]];
-Print["\[Mu] indices are reserved by the code. Proceeding with the following indices replacements:"];
-Print[Subscript[\[Mu], #]->Subscript[\[Nu], n\[Nu]+#-\[Mu]start+1]]&/@Sort[DeleteDuplicates[Cases[Pindices,Subscript[\[Mu], i_]->i]]];
-Pindices=Pindices/.{Subscript[\[Mu], i_]->Subscript[\[Nu], n\[Nu]+i-\[Mu]start+1]};
-myflist=myflist/.{Subscript[\[Mu], i_]->Subscript[\[Nu], n\[Nu]+i-\[Mu]start+1]};
-];
-(* Pindices: replace \[Rho] indices in the input with \[Nu] indices *)
-If[MemberQ[Pindices,Subscript[\[Rho], _]],
-n\[Nu]=Max[Join[{0},Cases[Pindices,Subscript[\[Nu], i_]->i]]];
-\[Rho]start=Min[Cases[Pindices,Subscript[\[Rho], i_]->i]];
-Print["\[Rho] indices are reserved by the code. Proceeding with the following indices replacements:"];
-Print[Subscript[\[Rho], #]->Subscript[\[Nu], n\[Nu]+#-\[Rho]start+1]]&/@Sort[DeleteDuplicates[Cases[Pindices,Subscript[\[Rho], i_]->i]]];
-Pindices=Pindices/.{Subscript[\[Rho], i_]->Subscript[\[Nu], n\[Nu]+i-\[Rho]start+1]};
-myflist=myflist/.{Subscript[\[Rho], i_]->Subscript[\[Nu], n\[Nu]+i-\[Rho]start+1]};
-];
+Parameters=STrParameters[myflist,OptionValue[Udimlist]];
+masslabels=Parameters[[1]];
+typelist=Parameters[[2]];
+coeff=Parameters[[3]];
+Ulist=Parameters[[4]];
+Plocations=Parameters[[5]];
+Pindices=Parameters[[6]];
+myUdimlist=Parameters[[7]];
+(**)
+(*************************************************************************************)
+(******************************* Check Validity of Options ******************************)
+(*************************************************************************************)
+(**)
 (* Heavylist *)
 myHeavylist=OptionValue[Heavylist];
 If[Intersection[masslabels,myHeavylist]==={},
-Print["flist contains no heavy mass: Heavylist=",myHeavylist,", while masslabels=",masslabels];
-Print["Supertrace vanishes."];
+Print["SuperTrace[] called with an flist containing no heavy mass:"];
+Print["flist=",myflist];
+Print["masslabels=",masslabels];
+Print["Heavylist=",myHeavylist];
+Print["In this case, Supertrace[f]=-iSTr[f]\!\(\*SubscriptBox[\(|\), \(hard\)]\) vanishes."];
 Return[{}];
 ];
 (* SoftOrd *)
 mySoftOrd=OptionValue[SoftOrd];
 If[(!IntegerQ[mySoftOrd])||(mySoftOrd<0),
-Print["SuperTrace[] called with invalid SoftOrd=",mySoftOrd];
+Print["SuperTrace[] called with invalid option SoftOrd=",mySoftOrd];
+Print["SoftOrd must be non-negative integers."];
 Print["Aborted."];
 Abort[];
 ];
@@ -1378,14 +1383,15 @@ coeff=supersign*coeff;
 (* Address fermionic propagators *)
 flistU=STrflistUFrame[masslabels,typelist,coeff,Plocations,Pindices];
 n\[CapitalSigma]cap=Floor[(dim-(Plus@@myUdimlist))/2];If[n\[CapitalSigma]cap<0,n\[CapitalSigma]cap=0];
-bflistArray=STrBflists[flistU,n\[CapitalSigma]cap];
+bflistArray=STrBflists[flistU,n\[CapitalSigma]cap,n\[Nu]];
 UdimlistArray=(Cases[#,\[Sigma]F|Subscript[U, __]]/.{\[Sigma]F->2,Subscript[U, i_]:>myUdimlist[[i]]})&/@bflistArray;
 bflistArray=(#/.{Subscript[U, i_]:>Ulist[[i]]})&/@bflistArray;
 BSTrInputArray=MapThread[STrParameters[#1,#2]&,{bflistArray,UdimlistArray}];
 BSTrInputArray=Join[{dim},Delete[#,2]]&/@BSTrInputArray;
 (**)
 (* Perform original CDE *)
-mypoly=SumPolys[(BSTrPolyGen@@#)&/@BSTrInputArray];
+mypoly=Join@@((BSTrPolyGen@@#)&/@BSTrInputArray);
+mypoly=SimplifyPoly[mypoly];
 (**)
 (* Perform loop integrals *)
 mypoly=qEvenTrimPoly[mypoly];
@@ -1402,8 +1408,7 @@ If[OptionValue[display],
 myInput=STrPrint[myflist];
 myPrint=ReplacePart[#,2->{{Row[Row[Join[{"("},{Row[#]},{")"}]]&/@(#[[2]])]}}]&/@mystr;
 myPrint=ReplacePart[#,3->{{Row[{"(dim-",#[[3]],")"}]}}]&/@myPrint;
-Print[myInput," = \[Integral]\!\(\*SuperscriptBox[\(d\), \(4\)]\)x \!\(\*FractionBox[\(1\), \(16 \*SuperscriptBox[\(\[Pi]\), \(2\)]\)]\) tr{\n",TableForm[myPrint,TableSpacing->{5,5,2}]];
-Print["}"];
+Print[myInput," = \[Integral]\!\(\*SuperscriptBox[\(d\), \(4\)]\)x \!\(\*FractionBox[\(1\), \(16 \*SuperscriptBox[\(\[Pi]\), \(2\)]\)]\) tr{\n",TableForm[myPrint,TableSpacing->{5,5,2}],"\n}"];
 ];
 Return[mystr];
 ];
