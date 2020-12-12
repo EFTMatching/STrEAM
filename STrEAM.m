@@ -35,6 +35,7 @@ P::usage="\!\(\*SubscriptBox[\(P\), \(\[Mu]\)]\)=\!\(\*SubscriptBox[\(iD\), \(\[
 m::usage="\!\(\*SubscriptBox[\(m\), \(i\)]\) with i non-negative integers denote particle masses.";
 d::usage="d denotes the spacetime dimension in dimensional regularization.";
 \[Eta]::usage="\!\(\*SubscriptBox[\(\[Eta]\), \(\[Mu], \[Nu]\)]\)=diag(1,-1,-1,-1) denotes the spacetime metric.";
+\[CurlyEpsilon]::usage="\!\(\*SubscriptBox[\(\[CurlyEpsilon]\), \(\[Mu], \[Nu], \[Rho], \[Sigma]\)]\) denote the Levi-Civita symbol, with \!\(\*SubscriptBox[\(\[CurlyEpsilon]\), \(0123\)]\)=-1.";
 F::usage="\!\(\*SubscriptBox[\(F\), \(\[Mu], \[Nu]\)]\)=-i[\!\(\*SubscriptBox[\(P\), \(\[Mu]\)]\),\!\(\*SubscriptBox[\(P\), \(\[Nu]\)]\)]=\!\(\*SubscriptBox[\(g\), \(a\)]\)\!\(\*SubsuperscriptBox[\(G\), \(\[Mu]\[Nu]\), \(a\)]\)\!\(\*SuperscriptBox[\(T\), \(a\)]\) denotes the sum of field strengths.";
 \[Gamma]::usage="\!\(\*SubscriptBox[\(\[Gamma]\), \(\[Mu]\)]\) denote Dirac matrices.";
 \[Sigma]F::usage="\[Sigma]F denotes \!\(\*SuperscriptBox[\(\[Sigma]\), \(\[Mu]\[Nu]\)]\)\!\(\*SubscriptBox[\(F\), \(\[Mu]\[Nu]\)]\)=\!\(\*FractionBox[\(i\), \(2\)]\)[\!\(\*SuperscriptBox[\(\[Gamma]\), \(\[Mu]\)]\),\!\(\*SuperscriptBox[\(\[Gamma]\), \(\[Nu]\)]\)]\!\(\*SubscriptBox[\(F\), \(\[Mu]\[Nu]\)]\) in the dipole factor \[CapitalSigma]=-\!\(\*FractionBox[\(1\), \(2\)]\)\!\(\*SuperscriptBox[\(\[Sigma]\), \(\[Mu]\[Nu]\)]\)\!\(\*SubscriptBox[\(F\), \(\[Mu]\[Nu]\)]\).";
@@ -114,12 +115,15 @@ q2dq2\[Eta]2Rules={\!\(
 \*SubscriptBox[\(dq\), \(\[Nu]\)]}\)\),\!\(
 \*SubsuperscriptBox[\(\[Eta]\), \(a__\), \(2\)] -> \({
 \*SubscriptBox[\(\[Eta]\), \(a\)], 
-\*SubscriptBox[\(\[Eta]\), \(a\)]}\)\)};
+\*SubscriptBox[\(\[Eta]\), \(a\)]}\)\),\!\(
+\*SubsuperscriptBox[\(\[CurlyEpsilon]\), \(a__\), \(2\)] -> \({
+\*SubscriptBox[\(\[CurlyEpsilon]\), \(a\)], 
+\*SubscriptBox[\(\[CurlyEpsilon]\), \(a\)]}\)\)};
 
 (* Split a qPart into commuting segments, with the first one reserved for coefficient *)
 SplitqPart[qPart_]:=Module[{coeff,myqPart,myqPartSplit},
 coeff=Times@@(Cases[qPart,_?NumericQ]);
-myqPart=Join[Cases[qPart,Subscript[m, __]],Cases[qPart,Subscript[\[Eta], __]],DeleteCases[qPart,_?NumericQ|Subscript[m, __]|Subscript[\[Eta], __]]];
+myqPart=Join[Cases[qPart,Subscript[m, _]],Cases[qPart,Subscript[\[Eta], __]],Cases[qPart,Subscript[\[CurlyEpsilon], __]],DeleteCases[qPart,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[CurlyEpsilon], __]]];
 myqPartSplit=Join[{{coeff}},Split[myqPart,qPartCommuting]];
 Return[myqPartSplit];
 ];
@@ -237,7 +241,7 @@ Return[myqSec];
 
 (* \[Eta] contraction rules *)
 \[Eta]ContractionRules={Subscript[\[Eta], \[Mu]_,\[Nu]_] Subscript[\[Eta], \[Mu]_,\[Rho]_]->Subscript[\[Eta], \[Nu],\[Rho]],Subscript[\[Eta], \[Mu]_,\[Nu]_] Subscript[\[Eta], \[Rho]_,\[Mu]_]->Subscript[\[Eta], \[Nu],\[Rho]],Subscript[\[Eta], \[Nu]_,\[Mu]_] Subscript[\[Eta], \[Mu]_,\[Rho]_]->Subscript[\[Eta], \[Nu],\[Rho]],Subscript[\[Eta], \[Nu]_,\[Mu]_] Subscript[\[Eta], \[Rho]_,\[Mu]_]->Subscript[\[Eta], \[Nu],\[Rho]],Subscript[\[Eta], \[Mu]_,\[Mu]_]->d,\!\(
-\*SubsuperscriptBox[\(\[Eta]\), \(__\), \(2\)] -> d\),Subscript[a__, \[Mu]_] Subscript[\[Eta], \[Mu]_,\[Nu]_]->Subscript[a, \[Nu]],Subscript[a__, \[Mu]_] Subscript[\[Eta], \[Nu]_,\[Mu]_]->Subscript[a, \[Nu]]};
+\*SubsuperscriptBox[\(\[Eta]\), \(__\), \(2\)] -> d\),Subscript[a__, \[Mu]_] Subscript[\[Eta], \[Mu]_,\[Nu]_]->Subscript[a, \[Nu]],Subscript[a__, \[Mu]_] Subscript[\[Eta], \[Nu]_,\[Mu]_]->Subscript[a, \[Nu]],Subscript[a_, \[Mu]_,\[Nu]_,\[Rho]_,\[Sigma]_] Subscript[\[Eta], \[Mu]_,\[Alpha]_]->Subscript[a, \[Alpha],\[Nu],\[Rho],\[Sigma]],Subscript[a_, \[Mu]_,\[Nu]_,\[Rho]_,\[Sigma]_] Subscript[\[Eta], \[Alpha]_,\[Mu]_]->Subscript[a, \[Alpha],\[Nu],\[Rho],\[Sigma]],Subscript[a_, \[Nu]_,\[Mu]_,\[Rho]_,\[Sigma]_] Subscript[\[Eta], \[Mu]_,\[Alpha]_]->Subscript[a, \[Nu],\[Alpha],\[Rho],\[Sigma]],Subscript[a_, \[Nu]_,\[Mu]_,\[Rho]_,\[Sigma]_] Subscript[\[Eta], \[Alpha]_,\[Mu]_]->Subscript[a, \[Nu],\[Alpha],\[Rho],\[Sigma]],Subscript[a_, \[Nu]_,\[Rho]_,\[Mu]_,\[Sigma]_] Subscript[\[Eta], \[Mu]_,\[Alpha]_]->Subscript[a, \[Nu],\[Rho],\[Alpha],\[Sigma]],Subscript[a_, \[Nu]_,\[Rho]_,\[Mu]_,\[Sigma]_] Subscript[\[Eta], \[Alpha]_,\[Mu]_]->Subscript[a, \[Nu],\[Rho],\[Alpha],\[Sigma]],Subscript[a_, \[Nu]_,\[Rho]_,\[Sigma]_,\[Mu]_] Subscript[\[Eta], \[Mu]_,\[Alpha]_]->Subscript[a, \[Nu],\[Rho],\[Sigma],\[Alpha]],Subscript[a_, \[Nu]_,\[Rho]_,\[Sigma]_,\[Mu]_] Subscript[\[Eta], \[Alpha]_,\[Mu]_]->Subscript[a, \[Nu],\[Rho],\[Sigma],\[Alpha]]};
 
 (* q contraction rules *)
 qContractionRules={\!\(
@@ -388,9 +392,9 @@ Return[mypoly];
 
 (* Simplify a poly by collecting and simplifying its terms *)
 SimplifyPoly[poly_]:=Module[{qSecArray,OperArray,mypoly},
-(* move all commuting factors including constants, Subscript[m, i], Subscript[\[Eta], \[Mu]\[Nu]], and Subscript[\[Epsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] in Oper to qSec *)
-qSecArray=ScaleqSec[#[[1]],Times@@Cases[Flatten[#[[2]]],_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]]]&/@poly;
-OperArray=Select[DeleteCases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]]&/@#[[2]],(#=!={})&]&/@poly;
+(* move all commuting factors including constants, Subscript[m, i], Subscript[\[Eta], \[Mu]\[Nu]], and Subscript[\[CurlyEpsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] in Oper to qSec *)
+qSecArray=ScaleqSec[#[[1]],Times@@Cases[Flatten[#[[2]]],_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[CurlyEpsilon], __]]]&/@poly;
+OperArray=Select[DeleteCases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[CurlyEpsilon], __]]&/@#[[2]],(#=!={})&]&/@poly;
 mypoly=MapThread[ReplacePart[#3,{1->#1,2->#2}]&,{qSecArray,OperArray,poly}];
 (* collect terms with identical Oper *)
 mypoly=ReplacePart[#[[1]],1->Join@@(#[[1]]&/@#)]&/@GatherBy[mypoly,#[[2]]&];
@@ -555,18 +559,18 @@ myterm=ReplacePart[term,2->myOper];
 Return[myterm];
 ];
 
-(* Move Subscript[\[Eta], \[Mu]\[Nu]] and Subscript[\[Epsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] in the qSec of a term to the Oper to get a poly *)
-MoveLorentzTerm[term_]:=Module[{myqSec,\[Eta]pairsArray,\[Epsilon]listArray,qSecArray,OperArray,mypoly},
+(* Move Subscript[\[Eta], \[Mu]\[Nu]] and Subscript[\[CurlyEpsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] in the qSec of a term to the Oper to get a poly *)
+MoveLorentzTerm[term_]:=Module[{myqSec,\[Eta]pairsArray,\[CurlyEpsilon]listArray,qSecArray,OperArray,mypoly},
 myqSec=SimplifyqSec[term[[1]]]; If[myqSec==={{0}},Return[{}]];
 (* move Subscript[\[Eta], \[Mu]\[Nu]] *)
 mypoly=ReplacePart[term,1->#]&/@({DeleteCases[#,Subscript[\[Eta], __]]}&/@myqSec);
 \[Eta]pairsArray=Cases[#,Subscript[\[Eta], a__]->{a}]&/@myqSec;
 mypoly=MapThread[Fold[\[Eta]pairTerm,#1,#2]&,{mypoly,\[Eta]pairsArray}];
 mypoly=Select[mypoly,Count[#[[2]],{Subscript[F, \[Mu]_,\[Mu]_]}|{__,Subscript[F, \[Mu]_,\[Mu]_]}]==0&];
-(* move Subscript[\[Epsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] *)
-\[Epsilon]listArray=Cases[#[[1]][[1]],Subscript[\[Epsilon], __]]&/@mypoly;
-qSecArray={DeleteCases[#[[1]][[1]],Subscript[\[Epsilon], __]]}&/@mypoly;
-OperArray=MapThread[If[#2==={},#1[[2]],Join[{#2},#1[[2]]]]&,{mypoly,\[Epsilon]listArray}];
+(* move Subscript[\[CurlyEpsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] *)
+\[CurlyEpsilon]listArray=Cases[#[[1]][[1]],Subscript[\[CurlyEpsilon], __]]&/@mypoly;
+qSecArray={DeleteCases[#[[1]][[1]],Subscript[\[CurlyEpsilon], __]]}&/@mypoly;
+OperArray=MapThread[If[#2==={},#1[[2]],Join[#1[[2]],{#2}]]&,{mypoly,\[CurlyEpsilon]listArray}];
 mypoly=MapThread[ReplacePart[#3,{1->#1,2->#2}]&,{qSecArray,OperArray,mypoly}];
 Return[mypoly];
 ];
@@ -619,6 +623,9 @@ myterm=term/.MapThread[#1->Subscript[\[Mu], #2]&,{dummyindices,Range[ndummy]}];
 myOper=myterm[[2]];
 nF=Count[myOper,Subscript[F, __],All];
 myOper=Fold[FIndexOrgOper,myOper,Range[nF]];
+myterm=ReplacePart[myterm,2->myOper];
+(* canonically order Subscript[\[CurlyEpsilon], \[Mu]\[Nu]\[Rho]\[Sigma]] indices *)
+myOper=Flatten[#/.{Subscript[\[CurlyEpsilon], a__]:>{Signature[{a}],Subscript[\[CurlyEpsilon], Sort[{a}]]}}/.{\!\(\*SubscriptBox[\(\[CurlyEpsilon]\), \({a__}\)]\)->Subscript[\[CurlyEpsilon], a]}]&/@myterm[[2]];
 myterm=ReplacePart[myterm,2->myOper];
 Return[myterm];
 ];
@@ -698,6 +705,8 @@ SymHardTerm[term_,dim_,Heavylist_,SoftOrd_]:=Module[{myqSec,myexprArray,\[Eta]pa
 (* contract all the Lorentz indices in qSec *)
 myexprArray=(((Times@@#)//.\[Eta]ContractionRules)/.qContractionRules)&/@term[[1]];
 myexprArray=myexprArray/.{Subscript[\[Eta], \[Mu]_,\[Nu]_]:>Subscript[\[Eta], Sort[{\[Mu],\[Nu]}]]}/.{\!\(\*SubscriptBox[\(\[Eta]\), \({a__}\)]\)->Subscript[\[Eta], a]};
+myexprArray=myexprArray/.{Subscript[\[CurlyEpsilon], a__]:>Signature[{a}]Subscript[\[CurlyEpsilon], Sort[{a}]]}/.{\!\(\*SubscriptBox[\(\[CurlyEpsilon]\), \({a__}\)]\)->Subscript[\[CurlyEpsilon], a]};
+myexprArray=Flatten[{(Plus@@myexprArray)/.Plus->List}];
 myqSec=qPartFromExpr[#]&/@myexprArray;
 (* FTrim the qSec *)
 myqSec=FTrimTerm[ReplacePart[term,1->myqSec]][[1]];
@@ -1160,7 +1169,7 @@ Print["Aborted."];
 Abort[];
 ];
 (* coeff, Ulist, and Udimlist *)
-If[SequenceCount[DeleteCases[myflist,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[Epsilon], __]|Subscript[P, _]]/.{Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]->\[CapitalDelta]},{\[CapitalDelta],\[CapitalDelta]}]>0,
+If[SequenceCount[DeleteCases[myflist,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[CurlyEpsilon], __]|Subscript[P, _]]/.{Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]->\[CapitalDelta]},{\[CapitalDelta],\[CapitalDelta]}]>0,
 Print["Invalid input f."];
 Print["f must be made of the propagator blocks f=[ ... (\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(n\)], \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) or \!\(\*SubsuperscriptBox[\(\[CapitalLambda]\), \(i\), \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(m\)], \(CDE\)]\))\!\(\*SubsuperscriptBox[\(U\), \(k\), \(CDE\)]\) ... ]."];
 Print["Missing U factor between \[CapitalDelta]|\[CapitalLambda]: input flist=",flist];
@@ -1168,7 +1177,7 @@ Print["Aborted."];
 Abort[];
 ];
 my\[CapitalDelta]split=Split[myflist,!MatchQ[#2,Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]]&];
-If[DeleteCases[my\[CapitalDelta]split[[1]],_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]|Subscript[P, _]]=!={},
+If[DeleteCases[my\[CapitalDelta]split[[1]],_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[CurlyEpsilon], __]|Subscript[P, _]]=!={},
 Print["Invalid input f."];
 Print["f must be made of the propagator blocks f=[ ... (\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Mu]\), \(n\)], \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(\[CapitalDelta]\), \(i\), \(CDE\)]\) or \!\(\*SubsuperscriptBox[\(\[CapitalLambda]\), \(i\), \(CDE\)]\))(\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(1\)], \(CDE\)]\)...\!\(\*SubsuperscriptBox[\(P\), SubscriptBox[\(\[Nu]\), \(m\)], \(CDE\)]\))\!\(\*SubsuperscriptBox[\(U\), \(k\), \(CDE\)]\) ... ]."];
 Print["U factor found before the first propagator: input flist=",flist];
@@ -1177,7 +1186,7 @@ Abort[];
 ];
 mycoeff=Times@@DeleteCases[my\[CapitalDelta]split[[1]],Subscript[P, _]];
 my\[CapitalDelta]split=my\[CapitalDelta]split[[2;;]];
-PUframeArray=DeleteCases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[Epsilon], __]|Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]]&/@my\[CapitalDelta]split;
+PUframeArray=DeleteCases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[CurlyEpsilon], __]|Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]]&/@my\[CapitalDelta]split;
 nUArray=(Length[Split[Join[{Subscript[P, 0]},#],!(MatchQ[#1,Subscript[P, _]]&&!MatchQ[#2,Subscript[P, _]])&]]&/@PUframeArray)-1;
 If[Max[nUArray]>1,
 Print["Invalid input f."];
@@ -1186,8 +1195,8 @@ Print["More than one U factors found between two adjacent propagators: input fli
 Print["Aborted."];
 Abort[];
 ];
-Ucoefflist=(Times@@Cases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]])&/@my\[CapitalDelta]split;
-Uoperlist=DeleteCases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Epsilon], __]|Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]|Subscript[P, _]]&/@my\[CapitalDelta]split;
+Ucoefflist=(Times@@Cases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[CurlyEpsilon], __]])&/@my\[CapitalDelta]split;
+Uoperlist=DeleteCases[#,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[CurlyEpsilon], __]|Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]|Subscript[P, _]]&/@my\[CapitalDelta]split;
 Uoperlist=If[Length[#]>1,#/.List->NonCommutativeMultiply,#/.List->Times]&/@Uoperlist;
 myUlist=MapThread[#1 #2&,{Ucoefflist,Uoperlist}];
 If[(Length[Udimlist]!=0)&&(Length[Udimlist]!=Length[myUlist]),
@@ -1197,7 +1206,7 @@ Print["Aborted."];
 Abort[];
 ];
 myUdimlist=Udimlist; If[myUdimlist==={},myUdimlist=1&/@myUlist];
-If[DeleteCases[Last[my\[CapitalDelta]split],_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[Epsilon], __]|Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]|Subscript[P, _]]==={},
+If[DeleteCases[Last[my\[CapitalDelta]split],_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[CurlyEpsilon], __]|Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]|Subscript[P, _]]==={},
 If[(Length[Udimlist]!=0)&&Last[Udimlist]!=0,
 Print["Invalid input option Udimlist."];
 Print["Nonzero last Udimlist for trivial last U factor: Ulist=",myUlist,", Udimlist=",Udimlist];
@@ -1207,7 +1216,7 @@ Abort[];
 myUdimlist[[-1]]=0;
 ];
 (* Plocations and Pindices *)
-myP\[CapitalDelta]PUlist=DeleteCases[myflist,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[Epsilon], __]]/.{Subscript[P, _]->P,Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]->\[CapitalDelta]};
+myP\[CapitalDelta]PUlist=DeleteCases[myflist,_?NumericQ|Subscript[m, _]|Subscript[\[Eta], __]|Subscript[\[Gamma], _]|Subscript[\[CurlyEpsilon], __]]/.{Subscript[P, _]->P,Subscript[\[CapitalDelta], _]|Subscript[\[CapitalLambda], _]->\[CapitalDelta]};
 myP\[CapitalDelta]PUsplit=Split[myP\[CapitalDelta]PUlist,(MatchQ[#1,\[CapitalDelta]|P]||!MatchQ[#2,\[CapitalDelta]|P])&];
 If[Length[myP\[CapitalDelta]PUsplit]>Length[masslabels],
 Print["Invalid input f."];
@@ -1316,7 +1325,7 @@ Clear[SuperTraceFromExpr];
 (* ::Input::Initialization:: *)
 (* \!\(\(Compute\ a\ functional\ supertrace\  - iSTr[f]\)
 \*SubscriptBox[\(|\), \(hard\)]\ \(up\ to\ a\ given\ operator\ dimension\ dim\)\) *)
-SuperTrace[dim_,flist_,OptionsPattern[{Udimlist->{},Heavylist->{1},SoftOrd->0,No\[Gamma]inU->False,display->False}]]:=Module[{myflist,indices,n\[Nu],\[Mu]start,Parameters,masslabels,typelist,coeff,Ulist,Plocations,Pindices,myUdimlist,myHeavylist,mySoftOrd,supersign,flistU,n\[CapitalSigma]cap,bflistArray,UdimlistArray,BSTrInputArray,polyArray,mypoly,myInput,myPrint,mystr},
+SuperTrace[dim_,flist_,OptionsPattern[{Udimlist->{},Heavylist->{1},SoftOrd->0,No\[Gamma]inU->False,display->False}]]:=Module[{myflist,indices,n\[Nu],\[Mu]start,Parameters,masslabels,typelist,coeff,Ulist,Plocations,Pindices,myUdimlist,myHeavylist,mySoftOrd,supersign,flistU,n\[CapitalSigma]cap,bflistArray,UdimlistArray,BSTrInputArray,showstatus,mypoly,myInput,myPrint,mystr},
 (**)
 (*************************************************************************************)
 (********************************** Interpret Inputs ***********************************)
@@ -1392,14 +1401,23 @@ BSTrInputArray=Join[{dim},Delete[#,2]]&/@BSTrInputArray;
 (* Perform original CDE *)
 mypoly=Join@@((BSTrPolyGen@@#)&/@BSTrInputArray);
 mypoly=SimplifyPoly[mypoly];
+showstatus=False;
+If[Plus@@(Length[#[[1]]]&/@mypoly)>200,showstatus=True];
+If[showstatus,Print["Poly generated. Number of terms:\n\t",Plus@@(Length[#[[1]]]&/@mypoly)]];
 (**)
 (* Perform loop integrals *)
 mypoly=qEvenTrimPoly[mypoly];
 mypoly=dqAllPoly[mypoly];
 mypoly=SimplifyPoly[mypoly];
+If[showstatus,Print["q-derivatives carried out. Number of terms:\n\t",Plus@@(Length[#[[1]]]&/@mypoly)]];
 mypoly=FTrimPoly[mypoly];
 mypoly=SymHardPoly[mypoly,dim,myHeavylist,mySoftOrd,OptionValue[No\[Gamma]inU]];
+If[showstatus,Print["Expanded in hard region. Number of terms:\n\t",Plus@@(Length[#[[1]]]&/@mypoly)]];
 mypoly=IntegratePoly[mypoly];
+If[showstatus,
+Print["Loop integrals done. Number of terms:\n\t",Plus@@(Length[#[[1]]]&/@mypoly)];
+Print[Graphics[Line[{{0,0},{100,0}}],ImageSize->600]];
+];
 mystr=ReplacePart[#,3->#[[3]][[1]]]&/@mypoly;
 mystr=mystr/.{Log[\!\(\*SubsuperscriptBox[\(m\), \(i_\), \(2\)]\)]->Log[\!\(\*SubsuperscriptBox[\(m\), \(i\), \(2\)]\)/\[Mu]^2]};
 (**)
