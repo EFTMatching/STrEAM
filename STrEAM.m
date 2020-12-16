@@ -7,7 +7,8 @@
 (* ::Text:: *)
 (*SuperTrace Evaluation Automated for Matching*)
 (*by Timothy Cohen, Xiaochuan Lu, and Zhengkang Zhang*)
-(*Last edited on December 11, 2020.*)
+(*Last edited on December 15, 2020.*)
+(*Please cite arXiv: 2011.02484, arXiv: 2012.07851*)
 
 
 (* ::Section:: *)
