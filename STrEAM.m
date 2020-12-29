@@ -7,7 +7,7 @@
 (* ::Text:: *)
 (*SuperTrace Evaluation Automated for Matching*)
 (*by Timothy Cohen, Xiaochuan Lu, and Zhengkang Zhang*)
-(*Last edited on December 15, 2020.*)
+(*Last edited on December 29, 2020.*)
 (*Please cite arXiv: 2011.02484, arXiv: 2012.07851*)
 
 
@@ -338,7 +338,7 @@ Return[myqSec];
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Polynomial Manipulations*)
 
 
@@ -441,7 +441,7 @@ Return[mypoly];
 ];
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Trimmings*)
 
 
@@ -670,13 +670,13 @@ myOper=Flatten/@MapThread[#1/.{\[Sigma]F->{I,Subscript[\[Gamma], Subscript[\[Mu]
 (* extract constants and \[Gamma], and carry out trace of \[Gamma] *)
 coeff=Times@@Cases[Flatten[myOper],_?NumericQ];
 \[Gamma]\[Mu]list=Cases[Cases[Flatten[myOper],Subscript[\[Gamma], __]],Subscript[_, a__]->a];
-\[Eta]expr=coeff All\[Gamma]Pairings[\[Gamma]\[Mu]list]/.{Subscript[\[Eta], \[Mu]_,\[Mu]_]->d};
+\[Eta]expr=coeff All\[Gamma]Pairings[\[Gamma]\[Mu]list]//.\[Eta]ContractionRules/.{Subscript[\[Eta], \[Mu]_,\[Mu]_]->d};
 \[Eta]pairArray=(Flatten[{#/.{Times->List}}])&/@Flatten[{\[Eta]expr/.{Plus->List}}];
 (* multiply \[Eta]expr with Oper to get a poly *)
-coeffArray=(Times@@Cases[#,_?NumericQ|d])&/@\[Eta]pairArray;
+coeffArray=(Times@@Cases[#,_?NumericQ|d|d^_])&/@\[Eta]pairArray;
 myOper=DeleteCases[#,_?NumericQ|Subscript[\[Gamma], __]]&/@myOper;
 mypoly=ReplacePart[term,{1->ScaleqSec[term[[1]],#],2->myOper}]&/@coeffArray;
-\[Eta]pairArray=Cases[DeleteCases[#,_?NumericQ|d],Subscript[\[Eta], a__]->{a}]&/@\[Eta]pairArray;
+\[Eta]pairArray=Cases[DeleteCases[#,_?NumericQ|d|d^_],Subscript[\[Eta], a__]->{a}]&/@\[Eta]pairArray;
 mypoly=MapThread[Fold[\[Eta]pairTerm,#1,#2]&,{mypoly,\[Eta]pairArray}];
 mypoly=Select[mypoly,Count[#[[2]],{Subscript[F, \[Mu]_,\[Mu]_]}|{__,Subscript[F, \[Mu]_,\[Mu]_]}]==0&];
 Return[mypoly];
